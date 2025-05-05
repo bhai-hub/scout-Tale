@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -9,9 +10,10 @@ export default {
   ],
   theme: {
   	extend: {
-      fontFamily: { // Add fontFamily
-        sans: ["var(--font-geist-sans)", "sans-serif"], // Use Geist Sans variable
-      },
+      // Removed fontFamily definition using the variable
+      // fontFamily: {
+      //   sans: ["var(--font-geist-sans)", "sans-serif"],
+      // },
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
