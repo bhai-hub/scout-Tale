@@ -87,4 +87,146 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+   /* React Quill specific overrides */
+  .ql-toolbar {
+    @apply rounded-t-md border-input bg-card; /* Match card/input styles */
+  }
+  .ql-container {
+    @apply rounded-b-md border-input text-base; /* Match card/input styles */
+     font-size: inherit; /* Inherit font size from parent */
+  }
+
+   .ql-editor {
+     @apply min-h-[250px] text-base leading-relaxed p-4; /* Ensure consistent padding and line height */
+     font-family: inherit; /* Inherit font family */
+     color: hsl(var(--foreground)); /* Use foreground color */
+   }
+
+  .ql-editor.ql-blank::before {
+    @apply text-muted-foreground italic not-italic left-4 right-4; /* Style placeholder */
+    font-style: normal; /* Override quill's italic placeholder */
+    pointer-events: none;
+  }
+
+   /* Improve button/picker visuals */
+   .ql-snow .ql-picker-label,
+   .ql-snow .ql-picker-options {
+     @apply text-foreground;
+   }
+    .ql-snow .ql-stroke {
+      stroke: hsl(var(--foreground) / 0.7);
+   }
+    .ql-snow .ql-fill {
+      fill: hsl(var(--foreground) / 0.7);
+   }
+    .ql-snow .ql-picker-options {
+       @apply bg-popover border-border shadow-md rounded-sm;
+    }
+    .ql-snow .ql-picker-item:hover,
+    .ql-snow .ql-picker-item.ql-selected {
+       @apply bg-accent text-accent-foreground;
+    }
+     .ql-snow .ql-tooltip {
+        @apply bg-popover border border-border rounded-md shadow-lg text-foreground p-2;
+     }
+     .ql-snow .ql-tooltip input[type=text] {
+        @apply bg-background border border-input rounded px-2 py-1 text-sm text-foreground;
+     }
+     .ql-snow .ql-tooltip a.ql-action::before {
+       @apply text-accent font-semibold ml-2;
+       content: 'Save';
+       padding: 2px 4px;
+       border-radius: 3px;
+       border: 1px solid hsl(var(--accent));
+     }
+      .ql-snow .ql-tooltip a.ql-remove::before {
+        @apply text-destructive font-semibold ml-2;
+        content: 'Remove';
+        padding: 2px 4px;
+        border-radius: 3px;
+        border: 1px solid hsl(var(--destructive));
+      }
+       .ql-snow .ql-tooltip.ql-editing a.ql-preview {
+         display: none; /* Hide preview link when editing */
+       }
+
+   .dark .ql-editor {
+      color: hsl(var(--foreground));
+   }
+    .dark .ql-editor.ql-blank::before {
+      color: hsl(var(--muted-foreground));
+   }
+   .dark .ql-snow .ql-stroke {
+       stroke: hsl(var(--foreground) / 0.7);
+   }
+   .dark .ql-snow .ql-fill {
+       fill: hsl(var(--foreground) / 0.7);
+   }
+    .dark .ql-snow .ql-picker-label,
+    .dark .ql-snow .ql-picker-options {
+        @apply text-foreground;
+    }
+     .dark .ql-snow .ql-picker-options {
+       @apply bg-popover border-border;
+    }
+     .dark .ql-snow .ql-picker-item:hover,
+     .dark .ql-snow .ql-picker-item.ql-selected {
+       @apply bg-accent text-accent-foreground;
+     }
+      .dark .ql-snow .ql-tooltip {
+         @apply bg-popover border-border text-foreground;
+      }
+      .dark .ql-snow .ql-tooltip input[type=text] {
+         @apply bg-background border-input text-foreground;
+      }
+       .dark .ql-snow .ql-tooltip a.ql-action::before {
+          border-color: hsl(var(--accent));
+          color: hsl(var(--accent));
+       }
+       .dark .ql-snow .ql-tooltip a.ql-remove::before {
+          border-color: hsl(var(--destructive));
+          color: hsl(var(--destructive));
+       }
+
+    /* Tailwind Prose Overrides within Quill Editor */
+   .ql-editor.prose {
+      h1, h2, h3, h4, h5, h6 { @apply text-foreground font-semibold mt-6 mb-3; }
+      h1 { @apply text-2xl; }
+      h2 { @apply text-xl; }
+      h3 { @apply text-lg; }
+      p { @apply mb-4 text-base; }
+      a { @apply text-primary underline hover:no-underline; }
+      strong { @apply font-semibold; }
+      blockquote { @apply border-l-4 border-border pl-4 italic text-muted-foreground my-4; }
+      ul { @apply list-disc list-inside mb-4 pl-4; }
+      ol { @apply list-decimal list-inside mb-4 pl-4; }
+      li { @apply mb-1; }
+      code { @apply bg-muted text-muted-foreground px-1 py-0.5 rounded text-sm; }
+      pre { @apply bg-muted p-4 rounded my-4 overflow-x-auto; }
+      hr { @apply border-border my-6; }
+      img { @apply rounded-md my-4 max-w-full h-auto; } /* Basic image styling */
+   }
+
+   /* Dark mode Prose Overrides */
+   .dark .ql-editor.prose {
+      h1, h2, h3, h4, h5, h6 { @apply text-foreground; }
+      p { @apply text-foreground/90; }
+      a { @apply text-primary; }
+      strong { @apply text-foreground; }
+      blockquote { @apply border-border text-muted-foreground; }
+      code { @apply bg-muted text-muted-foreground; }
+      pre code { @apply bg-transparent text-muted-foreground; }
+      hr { @apply border-border/50; }
+   }
+
+
+}
+
+@layer components {
+   /* You can add custom component styles here if needed */
+}
+
+@layer utilities {
+   /* You can add custom utility classes here if needed */
 }

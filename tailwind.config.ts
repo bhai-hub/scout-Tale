@@ -87,8 +87,69 @@ export default {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
+  		},
+       // Add typography settings if using @tailwindcss/typography
+       typography: (theme: (key: string) => any) => ({
+         DEFAULT: {
+           css: {
+             color: theme('colors.foreground'), // Use theme foreground
+              a: {
+               color: theme('colors.primary.DEFAULT'), // Use theme primary
+               '&:hover': {
+                 color: theme('colors.primary.DEFAULT / 0.8'),
+               },
+             },
+             // Add other prose styles here if needed
+             '--tw-prose-body': theme('colors.foreground / 0.9'),
+             '--tw-prose-headings': theme('colors.foreground'),
+             '--tw-prose-lead': theme('colors.foreground / 0.8'),
+             '--tw-prose-links': theme('colors.primary.DEFAULT'),
+             '--tw-prose-bold': theme('colors.foreground'),
+             '--tw-prose-counters': theme('colors.muted.foreground'),
+             '--tw-prose-bullets': theme('colors.muted.foreground'),
+             '--tw-prose-hr': theme('colors.border'),
+             '--tw-prose-quotes': theme('colors.muted.foreground'),
+             '--tw-prose-quote-borders': theme('colors.border'),
+             '--tw-prose-captions': theme('colors.muted.foreground'),
+             '--tw-prose-code': theme('colors.foreground'), // Or a specific code color
+             '--tw-prose-pre-code': theme('colors.muted.foreground'),
+             '--tw-prose-pre-bg': theme('colors.muted.DEFAULT'),
+             '--tw-prose-th-borders': theme('colors.border'),
+             '--tw-prose-td-borders': theme('colors.border'),
+           },
+         },
+         dark: { // Define dark mode prose styles
+           css: {
+             color: theme('colors.foreground'), // Use theme foreground for dark mode
+             a: {
+                color: theme('colors.primary.DEFAULT'), // Use theme primary for dark mode
+               '&:hover': {
+                 color: theme('colors.primary.DEFAULT / 0.8'),
+               },
+             },
+             '--tw-prose-body': theme('colors.foreground / 0.9'),
+             '--tw-prose-headings': theme('colors.foreground'),
+             '--tw-prose-lead': theme('colors.foreground / 0.8'),
+             '--tw-prose-links': theme('colors.primary.DEFAULT'),
+             '--tw-prose-bold': theme('colors.foreground'),
+             '--tw-prose-counters': theme('colors.muted.foreground'),
+             '--tw-prose-bullets': theme('colors.muted.foreground'),
+             '--tw-prose-hr': theme('colors.border'),
+             '--tw-prose-quotes': theme('colors.muted.foreground'),
+             '--tw-prose-quote-borders': theme('colors.border'),
+             '--tw-prose-captions': theme('colors.muted.foreground'),
+             '--tw-prose-code': theme('colors.foreground'),
+             '--tw-prose-pre-code': theme('colors.muted.foreground'),
+             '--tw-prose-pre-bg': theme('colors.muted.DEFAULT'),
+             '--tw-prose-th-borders': theme('colors.border'),
+             '--tw-prose-td-borders': theme('colors.border'),
+           },
+         },
+       }),
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+      require("tailwindcss-animate"),
+      require('@tailwindcss/typography'), // Add typography plugin
+   ],
 } satisfies Config;

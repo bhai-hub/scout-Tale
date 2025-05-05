@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams } from 'next/navigation';
@@ -8,6 +9,7 @@ import { Calendar, User, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles for potential rendered elements
 
 // Mock data - replace with actual data fetching logic
 interface VlogPost {
@@ -15,16 +17,17 @@ interface VlogPost {
   title: string;
   date: string;
   author: string;
-  content: string; // Full content
+  content: string; // Full content (HTML from Quill)
   imageUrl: string;
   imageHint: string;
 }
 
+// Add HTML content to mock data
 const mockVlogPosts: VlogPost[] = [
-   { id: "1", title: "Summer Camp Adventures", date: "2024-07-15", author: "Admin", content: "This year's summer camp was an unforgettable experience! We started with setting up tents under the starry sky, followed by a thrilling scavenger hunt the next morning. Evenings were spent around the campfire, sharing stories and roasting marshmallows. The highlight was definitely the canoe race on the final day. We learned teamwork, resilience, and made memories to last a lifetime. Looking forward to next year!", imageUrl: "https://picsum.photos/800/400", imageHint: "summer camp bonfire group" },
-   { id: "2", title: "Knot Tying Workshop", date: "2024-06-28", author: "Admin", content: "Knowing the right knots can be crucial in the outdoors. In our workshop, scouts practiced the bowline, square knot, clove hitch, and taut-line hitch. We discussed practical applications for each, from securing gear to setting up shelters. Practice makes perfect, so keep reviewing these essential skills!", imageUrl: "https://picsum.photos/800/400", imageHint: "close up rope knots" },
-   { id: "3", title: "Hiking the Green Trail", date: "2024-06-10", author: "Admin", content: "The Green Trail offered breathtaking views and a good challenge. We covered 5 miles, navigating using map and compass skills learned previously. Along the way, we identified various plants and wildlife, putting our nature knowledge to the test. Remember to always follow Leave No Trace principles on your hikes.", imageUrl: "https://picsum.photos/800/400", imageHint: "mountain hiking view" },
-   { id: "4", title: "Community Service Day", date: "2024-05-22", author: "Admin", content: "Giving back to the community is a core part of scouting. Our troop spent the day cleaning up the local park, planting new trees, and helping at the food bank. It was hard work, but incredibly rewarding to see the positive impact we made together. Great job, everyone!", imageUrl: "https://picsum.photos/800/400", imageHint: "people planting tree park" },
+   { id: "1", title: "Summer Camp Adventures", date: "2024-07-15", author: "Admin", content: "<h2>Unforgettable Experiences!</h2><p>This year's summer camp was an unforgettable experience! We started with setting up tents under the starry sky, followed by a <strong>thrilling scavenger hunt</strong> the next morning. Evenings were spent around the campfire, sharing stories and roasting marshmallows.</p><blockquote>The highlight was definitely the canoe race on the final day.</blockquote><p>We learned teamwork, resilience, and made memories to last a lifetime. Looking forward to next year!</p>", imageUrl: "https://picsum.photos/800/400", imageHint: "summer camp bonfire group" },
+   { id: "2", title: "Knot Tying Workshop", date: "2024-06-28", author: "Admin", content: "<h2>Mastering Essential Skills</h2><p>Knowing the right knots can be crucial in the outdoors. In our workshop, scouts practiced the following:</p><ul><li>Bowline</li><li>Square knot</li><li>Clove hitch</li><li>Taut-line hitch</li></ul><p>We discussed practical applications for each, from securing gear to setting up shelters. <em>Practice makes perfect</em>, so keep reviewing these essential skills!</p>", imageUrl: "https://picsum.photos/800/400", imageHint: "close up rope knots" },
+   { id: "3", title: "Hiking the Green Trail", date: "2024-06-10", author: "Admin", content: "<h2>Into the Woods</h2><p>The Green Trail offered breathtaking views and a good challenge. We covered <strong>5 miles</strong>, navigating using map and compass skills learned previously. Along the way, we identified various plants and wildlife, putting our nature knowledge to the test. Remember to always follow <u>Leave No Trace</u> principles on your hikes.</p>", imageUrl: "https://picsum.photos/800/400", imageHint: "mountain hiking view" },
+   { id: "4", title: "Community Service Day", date: "2024-05-22", author: "Admin", content: "<h2>Giving Back</h2><p>Giving back to the community is a core part of scouting. Our troop spent the day:</p><ol><li>Cleaning up the local park</li><li>Planting new trees</li><li>Helping at the food bank</li></ol><p>It was hard work, but incredibly rewarding to see the positive impact we made together. <strong>Great job, everyone!</strong></p>", imageUrl: "https://picsum.photos/800/400", imageHint: "people planting tree park" },
  ];
 
 
@@ -109,10 +112,16 @@ export default function VlogPostPage() {
                 <span>{new Date(vlog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
           </div>
-           {/* Basic rendering of content. Replace with a proper HTML renderer if content is HTML */}
-           <CardDescription className="text-base leading-relaxed text-foreground/90 whitespace-pre-line">
-                {vlog.content}
-           </CardDescription>
+           {/* Render HTML content safely using dangerouslySetInnerHTML */}
+           {/* Apply Quill's base styling class and additional prose styling */}
+           <div
+             className="ql-snow" // Apply base Quill theme class
+           >
+                <div
+                  className="ql-editor prose dark:prose-invert max-w-none text-base leading-relaxed text-foreground/90" // Apply Quill editor class and Tailwind prose for better typography
+                  dangerouslySetInnerHTML={{ __html: vlog.content }}
+                />
+           </div>
         </CardContent>
       </Card>
     </div>

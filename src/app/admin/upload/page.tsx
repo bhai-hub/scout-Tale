@@ -3,27 +3,31 @@
 
 import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from 'next/dynamic'; // Import dynamic
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+// Removed Textarea import
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, ShieldAlert } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth"; // Import useAuth hook
+import { useAuth } from "@/hooks/use-auth";
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function AdminUploadPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("Admin"); // Default author
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(""); // State for Quill content (HTML)
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
-  const { isAdmin, isLoading } = useAuth(); // Get auth state and loading status
+  const { isAdmin, isLoading } = useAuth();
   const router = useRouter();
 
   // Effect to redirect if not authenticated
   useEffect(() => {
-    // Only redirect if loading is complete and user is not admin
     if (!isLoading && !isAdmin) {
         toast({
             title: "Access Denied",
@@ -40,16 +44,21 @@ export default function AdminUploadPage() {
         toast({ title: "Unauthorized", description: "You must be logged in to upload.", variant: "destructive" });
         return;
     }
+    // Basic validation: check if content is empty or just contains empty HTML tags
+    if (!content || content === '<p><br></p>') {
+         toast({ title: "Content Missing", description: "Please write some content for your vlog post.", variant: "destructive" });
+         return;
+    }
+
     setIsUploading(true);
 
     // Simulate API call
-    console.log("Uploading:", { title, author, content });
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+    console.log("Uploading:", { title, author, content }); // Content is now HTML
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     setIsUploading(false);
     setTitle("");
-    setContent("");
-    // Optionally reset author or keep it
+    setContent(""); // Reset Quill content
     toast({
       title: "Vlog Post Uploaded!",
       description: `"${title}" has been successfully added.`,
@@ -74,9 +83,29 @@ export default function AdminUploadPage() {
     );
   }
 
+  // Quill modules configuration (optional, customize as needed)
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}],
+      ['link', 'image'], // Add image upload capabilities if backend supports it
+      ['clean']
+    ],
+  };
+
+  // Quill formats (ensure these match the toolbar options)
+  const quillFormats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike', 'blockquote',
+    'list', 'bullet', 'indent',
+    'link', 'image'
+  ];
+
+
   // Render the form if authenticated
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto"> {/* Increased max-width for editor */}
       <Card>
         <CardHeader>
           <CardTitle>Upload New Vlog Post</CardTitle>
@@ -110,24 +139,28 @@ export default function AdminUploadPage() {
 
             <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your vlog content here... (Rich text editor integration needed)"
-                required
-                className="min-h-[200px] text-base md:text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Note: This is a basic text area. A full rich text editor (like Tiptap, Quill, etc.) should be integrated here.
-              </p>
+              {/* Replace Textarea with ReactQuill */}
+               <div className="bg-card rounded-md border border-input">
+                  {/* ReactQuill needs to be rendered client-side */}
+                  {typeof window !== 'undefined' && (
+                     <ReactQuill
+                        theme="snow"
+                        value={content}
+                        onChange={setContent} // Directly sets HTML content
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Write your vlog content here..."
+                        className="min-h-[250px] [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-base [&_.ql-editor.ql-blank::before]:text-muted-foreground [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-toolbar]:border-input [&_.ql-container]:border-input" // Add custom class for styling
+                     />
+                  )}
+               </div>
             </div>
 
              <div className="space-y-2">
               <Label htmlFor="image">Featured Image (Optional)</Label>
               <Input id="image" type="file" className="text-base md:text-sm file:text-foreground" />
               <p className="text-xs text-muted-foreground">
-                 Image upload functionality needs to be implemented.
+                 Image upload functionality needs to be implemented (store URL in DB).
               </p>
             </div>
 
