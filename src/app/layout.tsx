@@ -1,18 +1,16 @@
 
 import type { Metadata } from "next";
-import { Geist } from "next/font/google"; // Changed from Geist_Sans
+import { GeistSans } from "geist/font/sans"; // Import GeistSans from geist/font/sans
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "@/components/ui/toaster"; // Import Toaster
 import { AuthProvider } from "@/hooks/use-auth"; // Import AuthProvider
 
-const geist = Geist({ // Changed from geistSans
-  variable: "--font-geist-sans", // Keep variable name consistent if used elsewhere
-  subsets: ["latin"],
+const geistSans = GeistSans({ // Instantiate GeistSans
+  variable: "--font-geist-sans", // Keep variable name consistent
+  // subsets are not typically needed for Geist from geist/font
 });
-
-// Removed Geist_Mono as it's not explicitly used in the design
 
 export const metadata: Metadata = {
   title: "ScoutVlog Central",
@@ -26,7 +24,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-       <body className={`${geist.variable} antialiased flex flex-col min-h-screen`}>
+       {/* Apply the font variable to the body */}
+       <body className={`${geistSans.variable} font-sans antialiased flex flex-col min-h-screen`}> {/* Added font-sans */}
         <AuthProvider> {/* Wrap components with AuthProvider */}
             <Header />
             <main className="flex-grow container mx-auto px-4 py-8">

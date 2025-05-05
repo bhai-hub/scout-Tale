@@ -9,7 +9,7 @@ import { Calendar, User, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles for potential rendered elements
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles for rendered elements
 
 // Mock data - replace with actual data fetching logic
 interface VlogPost {
@@ -98,6 +98,7 @@ export default function VlogPostPage() {
                height={400}
                className="w-full h-auto object-cover max-h-96" // Constrain image height
                 data-ai-hint={vlog.imageHint}
+                priority // Prioritize loading the main image
              />
          </CardHeader>
         <CardContent className="p-6 space-y-4">
@@ -113,12 +114,12 @@ export default function VlogPostPage() {
               </div>
           </div>
            {/* Render HTML content safely using dangerouslySetInnerHTML */}
-           {/* Apply Quill's base styling class and additional prose styling */}
+           {/* Apply Quill's base styling class for structure, rely on globals.css for typography */}
            <div
-             className="ql-snow" // Apply base Quill theme class
+             className="ql-snow" // Base Quill theme class
            >
                 <div
-                  className="ql-editor prose dark:prose-invert max-w-none text-base leading-relaxed text-foreground/90" // Apply Quill editor class and Tailwind prose for better typography
+                  className="ql-editor" // Apply Quill editor class, styling comes from globals.css
                   dangerouslySetInnerHTML={{ __html: vlog.content }}
                 />
            </div>

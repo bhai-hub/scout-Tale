@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-// Dynamically import ReactQuill to avoid SSR issues
+// Dynamically import ReactQuill to avoid SSR issues and potential findDOMNode errors
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function AdminUploadPage() {
@@ -45,10 +45,13 @@ export default function AdminUploadPage() {
         return;
     }
     // Basic validation: check if content is empty or just contains empty HTML tags
-    if (!content || content === '<p><br></p>') {
+    // Remove leading/trailing whitespace and check if the stripped content (excluding tags) is empty
+    const strippedContent = content.replace(/<[^>]*>/g, '').trim();
+    if (!strippedContent) {
          toast({ title: "Content Missing", description: "Please write some content for your vlog post.", variant: "destructive" });
          return;
     }
+
 
     setIsUploading(true);
 
@@ -59,11 +62,15 @@ export default function AdminUploadPage() {
     setIsUploading(false);
     setTitle("");
     setContent(""); // Reset Quill content
+    // Reset author if needed, or keep as 'Admin'
+    // setAuthor("Admin");
     toast({
       title: "Vlog Post Uploaded!",
       description: `"${title}" has been successfully added.`,
       variant: "default",
     });
+     // Optionally redirect after successful upload
+     // router.push('/');
   };
 
   // Show loading state or access denied message while checking auth
@@ -73,11 +80,14 @@ export default function AdminUploadPage() {
          {isLoading ? (
              <p>Loading authentication...</p>
          ) : (
-            <div className="text-center text-destructive">
-                 <ShieldAlert className="mx-auto h-12 w-12 mb-4" />
-                 <p className="font-semibold">Access Denied</p>
-                 <p>Redirecting to login...</p>
-            </div>
+            // Render null or a minimal message if already redirecting in useEffect
+             !isAdmin && <p>Redirecting to login...</p>
+            // Or keep the ShieldAlert if preferred:
+            // <div className="text-center text-destructive">
+            //      <ShieldAlert className="mx-auto h-12 w-12 mb-4" />
+            //      <p className="font-semibold">Access Denied</p>
+            //      <p>Redirecting to login...</p>
+            // </div>
          )}
       </div>
     );
@@ -105,7 +115,7 @@ export default function AdminUploadPage() {
 
   // Render the form if authenticated
   return (
-    <div className="max-w-3xl mx-auto"> {/* Increased max-width for editor */}
+    <div className="max-w-4xl mx-auto"> {/* Slightly wider max-width */}
       <Card>
         <CardHeader>
           <CardTitle>Upload New Vlog Post</CardTitle>
@@ -140,19 +150,19 @@ export default function AdminUploadPage() {
             <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
               {/* Replace Textarea with ReactQuill */}
-               <div className="bg-card rounded-md border border-input">
-                  {/* ReactQuill needs to be rendered client-side */}
-                  {typeof window !== 'undefined' && (
-                     <ReactQuill
-                        theme="snow"
-                        value={content}
-                        onChange={setContent} // Directly sets HTML content
-                        modules={quillModules}
-                        formats={quillFormats}
-                        placeholder="Write your vlog content here..."
-                        className="min-h-[250px] [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-base [&_.ql-editor.ql-blank::before]:text-muted-foreground [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-toolbar]:border-input [&_.ql-container]:border-input" // Add custom class for styling
-                     />
-                  )}
+               {/* Wrapper div for styling context if needed, ensure editor styles take precedence */}
+               <div className="bg-background rounded-md border border-input prose dark:prose-invert max-w-none">
+                  {/* ReactQuill is dynamically imported with ssr: false, no need for typeof window check */}
+                  <ReactQuill
+                     theme="snow"
+                     value={content}
+                     onChange={setContent} // Directly sets HTML content
+                     modules={quillModules}
+                     formats={quillFormats}
+                     placeholder="Write your vlog content here..."
+                     // Apply Quill's own classes and use Tailwind utilities for container/toolbar
+                     className="[&_.ql-editor]:min-h-[250px] [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-toolbar]:border-input [&_.ql-container]:border-input"
+                  />
                </div>
             </div>
 
@@ -165,7 +175,7 @@ export default function AdminUploadPage() {
             </div>
 
 
-            <Button type="submit" disabled={isUploading || !isAdmin} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button type="submit" disabled={isUploading || !isAdmin} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               {isUploading ? (
                 <div className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

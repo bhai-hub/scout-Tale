@@ -9,6 +9,9 @@ export default {
   ],
   theme: {
   	extend: {
+      fontFamily: { // Add fontFamily
+        sans: ["var(--font-geist-sans)", "sans-serif"], // Use Geist Sans variable
+      },
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
