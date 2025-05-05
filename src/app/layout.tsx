@@ -1,9 +1,11 @@
+
 import type { Metadata } from "next";
 import { Geist } from "next/font/google"; // Changed from Geist_Sans
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "@/components/ui/toaster"; // Import Toaster
+import { AuthProvider } from "@/hooks/use-auth"; // Import AuthProvider
 
 const geist = Geist({ // Changed from geistSans
   variable: "--font-geist-sans", // Keep variable name consistent if used elsewhere
@@ -24,14 +26,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geist.variable} antialiased flex flex-col min-h-screen`}>
-        <Header />
-        <main className="flex-grow container mx-auto px-4 py-8">
-          {children}
-        </main>
-        <Footer />
-        <Toaster /> {/* Add Toaster component here */}
-      </body>
+       <body className={`${geist.variable} antialiased flex flex-col min-h-screen`}>
+        <AuthProvider> {/* Wrap components with AuthProvider */}
+            <Header />
+            <main className="flex-grow container mx-auto px-4 py-8">
+            {children}
+            </main>
+            <Footer />
+            <Toaster /> {/* Add Toaster component here */}
+        </AuthProvider>
+       </body>
     </html>
   );
 }
