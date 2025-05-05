@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react"; // Added useEffect
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,15 +17,15 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const { login, isAdmin } = useAuth(); // Use the auth hook
+  const { login, isAdmin, isLoading: isAuthLoading } = useAuth(); // Use the auth hook, alias isLoading to avoid conflict
 
-  // Redirect if already logged in
-  if (isAdmin) {
-     if (typeof window !== 'undefined') { // Ensure this runs client-side
-       router.push("/admin/upload");
-     }
-     return null; // Render nothing while redirecting
-  }
+  // Effect to redirect if already logged in and auth check is complete
+  useEffect(() => {
+    // Only redirect if auth check is done and user is admin
+    if (!isAuthLoading && isAdmin) {
+      router.push("/admin/upload");
+    }
+  }, [isAdmin, isAuthLoading, router]);
 
 
   const handleSubmit = async (event: FormEvent) => {
@@ -35,8 +35,13 @@ export default function AdminLoginPage() {
     // Simulate authentication check
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Basic check (replace with real auth logic)
-    if (username === "admin" && password === "password") {
+    // Basic check (replace with real backend auth logic in a production app)
+    // IMPORTANT: This is insecure and only for demonstration purposes.
+    // Use environment variables or a secure configuration for real credentials.
+    const adminUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME || "admin";
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "password";
+
+    if (username === adminUsername && password === adminPassword) {
       login(); // Update auth state
       toast({
         title: "Login Successful",
@@ -55,6 +60,15 @@ export default function AdminLoginPage() {
     // No need to reset fields on failure, let user correct
   };
 
+   // Render loading state or null if redirecting
+   if (isAuthLoading || (!isAuthLoading && isAdmin)) {
+     return (
+       <div className="flex justify-center items-center h-64">
+         <p>Loading...</p> {/* Or a spinner */}
+       </div>
+     );
+   }
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust height as needed */}
       <Card className="w-full max-w-md">
@@ -71,7 +85,7 @@ export default function AdminLoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Enter username" // Generic placeholder
                 required
                 autoComplete="username"
                 className="text-base md:text-sm"
@@ -85,7 +99,7 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="password"
+                placeholder="Enter password" // Generic placeholder
                 required
                 autoComplete="current-password"
                 className="text-base md:text-sm"
@@ -107,9 +121,7 @@ export default function AdminLoginPage() {
                  </>
               )}
             </Button>
-             <p className="text-xs text-center text-muted-foreground">
-                Use username: <code className="font-mono bg-muted px-1 py-0.5 rounded">admin</code> and password: <code className="font-mono bg-muted px-1 py-0.5 rounded">password</code>
-             </p>
+             {/* Removed the insecure hint paragraph */}
           </form>
         </CardContent>
       </Card>
