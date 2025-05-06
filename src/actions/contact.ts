@@ -2,8 +2,9 @@
 'use server';
 
 import { z } from 'zod';
-import { contactFormSchema, type ContactFormData, type ContactMessageToInsert } from '@/schemas/contact';
+import { contactFormSchema, type ContactFormData, type ContactMessageToInsert, type ContactMessage } from '@/schemas/contact';
 import clientPromise from '@/lib/mongodb';
+import type { ObjectId } from 'mongodb'; // Import ObjectId if you are dealing with it directly
 
 interface ActionResult {
     success: boolean;
@@ -60,5 +61,31 @@ export async function submitContactForm(
             return { success: false, message: 'Data formatting error before save.', errors: error.issues };
         }
         return { success: false, message: 'Database error. Failed to send message.' };
+    }
+}
+
+
+export async function getContactMessages(): Promise<ContactMessage[]> {
+    try {
+        const client = await clientPromise;
+        const db = client.db();
+        // Define the type for documents in the collection.
+        // MongoDB stores _id as ObjectId, but we'll convert it to string.
+        const collection = db.collection<{ _id: ObjectId } & Omit<ContactMessage, '_id' | 'createdAt'> & { createdAt: Date | string }>('contactMessages');
+        const messages = await collection.find({}).sort({ createdAt: -1 }).toArray();
+
+        // Map MongoDB documents to ContactMessage type
+        return messages.map(msg => ({
+            _id: msg._id.toString(), // Convert ObjectId to string
+            name: msg.name,
+            email: msg.email,
+            subject: msg.subject,
+            message: msg.message,
+            createdAt: new Date(msg.createdAt), // Ensure createdAt is a Date object
+        }));
+    } catch (error) {
+        console.error("Error fetching contact messages:", error);
+        // Instead of throwing, return an empty array or handle error as per application needs
+        return [];
     }
 }

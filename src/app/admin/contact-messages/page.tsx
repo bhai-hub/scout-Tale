@@ -8,33 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Inbox, RefreshCw } from 'lucide-react'; // Added RefreshCw
-import type { ContactMessage } from '@/schemas/contact'; // Assuming ContactMessage type includes _id
-import clientPromise from '@/lib/mongodb'; // Import clientPromise to fetch directly on client for simplicity in this example.
-                                        // Ideally, use a server action for data fetching.
-
-async function fetchContactMessages(): Promise<ContactMessage[]> {
-    try {
-        const client = await clientPromise;
-        const db = client.db();
-        const collection = db.collection<Omit<ContactMessage, '_id'> & { _id: any }>('contactMessages'); // Use 'any' for _id initially
-        const messages = await collection.find({}).sort({ createdAt: -1 }).toArray();
-
-        // Map MongoDB documents to ContactMessage type
-        return messages.map(msg => ({
-            _id: msg._id.toString(), // Convert ObjectId to string
-            name: msg.name,
-            email: msg.email,
-            subject: msg.subject,
-            message: msg.message,
-            createdAt: new Date(msg.createdAt), // Ensure createdAt is a Date object
-        }));
-    } catch (error) {
-        console.error("Error fetching contact messages:", error);
-        throw new Error("Failed to fetch messages."); // Throw error to be caught by caller
-    }
-}
-
+import { Loader2, Inbox, RefreshCw } from 'lucide-react';
+import type { ContactMessage } from '@/schemas/contact';
+import { getContactMessages } from '@/actions/contact'; // Import the server action
 
 export default function AdminContactMessagesPage() {
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
@@ -46,12 +22,12 @@ export default function AdminContactMessagesPage() {
   const loadMessages = async () => {
     setIsLoadingMessages(true);
     try {
-      const fetchedMessages = await fetchContactMessages();
+      const fetchedMessages = await getContactMessages(); // Use the server action
       setMessages(fetchedMessages);
     } catch (error) {
       toast({
         title: 'Error Fetching Messages',
-        description: (error as Error).message || 'Could not load contact messages.',
+        description: (error instanceof Error ? error.message : 'Could not load contact messages.'),
         variant: 'destructive',
       });
     } finally {
