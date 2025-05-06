@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Mountain, LogOut, LogIn, UploadCloud } from "lucide-react"; // Added icons
+import { Menu, Mountain, LogOut, LogIn, UploadCloud, Mail } from "lucide-react"; // Added Mail icon
 import { useAuth } from "@/hooks/use-auth"; // Import auth hook
 import { useRouter } from "next/navigation"; // Import router
 
@@ -32,6 +32,9 @@ export default function Header() {
         <nav className="hidden flex-1 items-center space-x-4 md:flex">
           <Link href="/" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
             Vlogs
+          </Link>
+          <Link href="/contact" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
+            Contact Us
           </Link>
           {isAdmin && ( // Show Admin Upload only if logged in
              <Link href="/admin/upload" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
@@ -73,6 +76,9 @@ export default function Header() {
                 </Link>
                 <Link href="/" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
                   {/* Icon placeholder if needed */} Vlogs
+                </Link>
+                <Link href="/contact" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+                  <Mail className="h-5 w-5" /> Contact Us
                 </Link>
                  {isAdmin && ( // Mobile Admin Upload
                      <Link href="/admin/upload" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
