@@ -1,34 +1,37 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect } from "react";
+import { useState, type FormEvent, useEffect, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Loader2 } from "lucide-react";
+import { UploadCloud, Loader2, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import TiptapEditor from "@/components/tiptap/TiptapEditor";
-import { createVlogPost } from "@/actions/vlog"; // Import server action
-import { vlogPostFormSchema, type VlogPostFormData, type VlogPostToInsert } from "@/schemas/vlog"; // Import Zod schema
-import { z } from "zod"; // Import z for error handling
+import { createVlogPost } from "@/actions/vlog";
+import { uploadImageToCloudinary } from "@/actions/cloudinary"; // Import Cloudinary action
+import { vlogPostFormSchema, type VlogPostFormData, type VlogPostToInsert } from "@/schemas/vlog";
+import { z } from "zod";
+import Image from "next/image"; // For image preview
 
 function generateSlug(title: string): string {
     return title
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, '') // Remove non-alphanumeric characters (except spaces and hyphens)
-        .replace(/\s+/g, '-')     // Replace spaces with hyphens
-        .replace(/-+/g, '-');    // Replace multiple hyphens with a single hyphen
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
 }
 
 export default function AdminUploadPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("Admin");
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // For image URL input
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
@@ -47,19 +50,55 @@ export default function AdminUploadPage() {
     }
   }, [isAdmin, isAuthLoading, router, toast]);
 
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!isAdmin) {
         toast({ title: "Unauthorized", description: "You must be logged in to upload.", variant: "destructive" });
         return;
     }
-    setFormErrors([]); // Clear previous errors
+    setFormErrors([]);
+    setIsUploading(true);
+
+    let uploadedImageUrl: string | undefined = undefined;
+
+    if (imageFile) {
+      const imageFormData = new FormData();
+      imageFormData.append('file', imageFile);
+      const uploadResult = await uploadImageToCloudinary(imageFormData);
+      if (uploadResult.success && uploadResult.imageUrl) {
+        uploadedImageUrl = uploadResult.imageUrl;
+      } else {
+        toast({
+          title: "Image Upload Failed",
+          description: uploadResult.error || "Could not upload image to Cloudinary.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+    }
+
 
     const rawFormData: VlogPostFormData = {
         title,
         author,
         content,
-        imageUrl: imageUrl || undefined, // Pass undefined if empty for optional validation
+        imageUrl: uploadedImageUrl, // Use Cloudinary URL or undefined
     };
 
     const validationResult = vlogPostFormSchema.safeParse(rawFormData);
@@ -75,7 +114,6 @@ export default function AdminUploadPage() {
         return;
     }
 
-    setIsUploading(true);
 
     const dataToSave: VlogPostToInsert = {
         ...validationResult.data,
@@ -90,16 +128,15 @@ export default function AdminUploadPage() {
 
     if (result.success) {
       setTitle("");
-      setAuthor("Admin"); // Reset to default or clear
+      setAuthor("Admin");
       setContent("");
-      setImageUrl("");
+      setImageFile(null);
+      setImagePreview(null);
       toast({
         title: "Vlog Post Uploaded!",
         description: `"${dataToSave.title}" has been successfully added.`,
         variant: "default",
       });
-      // Optionally redirect or update UI
-      // router.push(`/vlogs/${dataToSave.slug}`);
     } else {
       toast({
         title: "Upload Failed",
@@ -112,7 +149,7 @@ export default function AdminUploadPage() {
     }
   };
 
-  const getErrorForField = (fieldName: keyof VlogPostFormData) => {
+  const getErrorForField = (fieldName: keyof VlogPostFormData | 'imageFile') => {
     return formErrors.find(err => err.path.includes(fieldName))?.message;
   }
 
@@ -120,7 +157,7 @@ export default function AdminUploadPage() {
     return (
       <div className="flex justify-center items-center h-64">
          {isAuthLoading ? (
-             <p>Loading authentication...</p>
+             <Loader2 className="h-8 w-8 animate-spin" />
          ) : (
              !isAdmin && <p>Redirecting to login...</p>
          )}
@@ -172,18 +209,22 @@ export default function AdminUploadPage() {
             </div>
 
              <div>
-              <Label htmlFor="imageUrl">Featured Image URL (Optional)</Label>
+              <Label htmlFor="imageFile">Featured Image (Optional)</Label>
               <Input
-                id="imageUrl"
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
+                id="imageFile"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
                 className="text-base md:text-sm mt-1"
               />
-              {getErrorForField('imageUrl') && <p className="text-sm text-destructive mt-1">{getErrorForField('imageUrl')}</p>}
+              {getErrorForField('imageFile') && <p className="text-sm text-destructive mt-1">{getErrorForField('imageFile')}</p>}
+              {imagePreview && (
+                <div className="mt-4 relative w-full h-64 border rounded-md overflow-hidden">
+                  <Image src={imagePreview} alt="Image preview" layout="fill" objectFit="cover" />
+                </div>
+              )}
                <p className="text-xs text-muted-foreground mt-1">
-                 Paste the URL of an image hosted online.
+                 Upload an image for the vlog post.
               </p>
             </div>
 

@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com', // Added Cloudinary hostname
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
   webpack: (config, { isServer }) => {
@@ -39,11 +45,12 @@ const nextConfig: NextConfig = {
             request.startsWith('aws4') ||
             request.startsWith('kerberos') ||
             request.startsWith('snappy') ||
-            request.startsWith('@mongodb-js/zstd')
+            request.startsWith('@mongodb-js/zstd') ||
+            request.startsWith('child_process') // Explicitly added child_process here
             // Add 'child_process' here if the above don't resolve it,
             // but it's better to handle it via the parent lib.
             // Forcing 'child_process' to be external might hide other issues.
-            // request.startsWith('child_process') 
+            // request.startsWith('child_process')
           ) {
             return callback(null, `commonjs ${request}`);
           }
