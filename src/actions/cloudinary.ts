@@ -1,16 +1,29 @@
-
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
 import type { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
-// Configure Cloudinary (ensure these environment variables are set)
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET, // Keep this secret on the server
-  secure: true,
-});
+// Configure Cloudinary explicitly with individual environment variables
+// These should be set in your .env.local file and in your deployment environment
+const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (cloudName && apiKey && apiSecret) {
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+} else {
+  // This console log will appear in the server logs if configuration is missing at startup.
+  // It's important to check this, as the function below will also error out per-request.
+  console.error(
+    'CRITICAL: Cloudinary environment variables (NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, NEXT_PUBLIC_CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are not fully set. Image uploads will fail.'
+  );
+}
+
 
 interface CloudinaryUploadResult {
   success: boolean;
@@ -25,9 +38,13 @@ export async function uploadImageToCloudinary(formData: FormData): Promise<Cloud
     return { success: false, error: 'No file provided for upload.' };
   }
 
-  if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    console.error('Cloudinary environment variables are not set.');
-    return { success: false, error: 'Cloudinary configuration is missing.' };
+  // Check configuration again at the time of function call
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.error('Cloudinary environment variables are not set during an upload attempt.');
+    return { 
+      success: false, 
+      error: 'Cloudinary configuration is missing. Please check server environment variables. Image uploads are disabled.' 
+    };
   }
 
   try {
