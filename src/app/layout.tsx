@@ -13,7 +13,7 @@ import { AuthProvider } from "@/hooks/use-auth"; // Import AuthProvider
 // });
 
 export const metadata: Metadata = {
-  title: "ScoutVlog Central",
+  title: "Scout Tales",
   description: "A vlog website for scout agencies.", // Updated description
 };
 

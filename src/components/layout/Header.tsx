@@ -24,7 +24,7 @@ export default function Header() {
         <Link href="/" className="mr-6 flex items-center space-x-2">
            <Mountain className="h-6 w-6 text-primary" />
           <span className="font-bold sm:inline-block text-primary">
-            ScoutVlog Central
+            Scout Tales
           </span>
         </Link>
 
@@ -69,7 +69,7 @@ export default function Header() {
               <nav className="grid gap-6 text-lg font-medium pt-10">
                 <Link href="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
                    <Mountain className="h-6 w-6 text-primary" />
-                   <span className="text-primary">ScoutVlog Central</span>
+                   <span className="text-primary">Scout Tales</span>
                 </Link>
                 <Link href="/" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
                   {/* Icon placeholder if needed */} Vlogs
