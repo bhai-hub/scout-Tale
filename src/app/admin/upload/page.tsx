@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Loader2, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Loader2 } from "lucide-react"; // Removed ImageIcon as it's handled by Tiptap
 import { useAuth } from "@/hooks/use-auth";
 import TiptapEditor from "@/components/tiptap/TiptapEditor";
 import { createVlogPost } from "@/actions/vlog";
-import { uploadImageToCloudinary } from "@/actions/cloudinary"; // Import Cloudinary action
+import { uploadImageToCloudinary } from "@/actions/cloudinary";
 import { vlogPostFormSchema, type VlogPostFormData, type VlogPostToInsert } from "@/schemas/vlog";
 import { z } from "zod";
-import Image from "next/image"; // For image preview
+import Image from "next/image";
 
 function generateSlug(title: string): string {
     return title
@@ -65,6 +65,33 @@ export default function AdminUploadPage() {
     }
   };
 
+  const handleTiptapImageUpload = async (file: File): Promise<string | undefined> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Consider adding a specific loading state for editor uploads if needed
+    // toast({ title: "Uploading image to editor..." }); 
+    
+    const uploadResult = await uploadImageToCloudinary(formData);
+    
+    if (uploadResult.success && uploadResult.imageUrl) {
+      toast({
+        title: "Image Inserted",
+        description: "Image successfully uploaded and inserted into the editor.",
+        variant: "default",
+      });
+      return uploadResult.imageUrl;
+    } else {
+      toast({
+        title: "Editor Image Upload Failed",
+        description: uploadResult.error || "Could not upload image to editor.",
+        variant: "destructive",
+      });
+      return undefined;
+    }
+  };
+
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!isAdmin) {
@@ -76,6 +103,7 @@ export default function AdminUploadPage() {
 
     let uploadedImageUrl: string | undefined = undefined;
 
+    // Handle featured image upload (if selected)
     if (imageFile) {
       const imageFormData = new FormData();
       imageFormData.append('file', imageFile);
@@ -84,8 +112,8 @@ export default function AdminUploadPage() {
         uploadedImageUrl = uploadResult.imageUrl;
       } else {
         toast({
-          title: "Image Upload Failed",
-          description: uploadResult.error || "Could not upload image to Cloudinary.",
+          title: "Featured Image Upload Failed",
+          description: uploadResult.error || "Could not upload featured image to Cloudinary.",
           variant: "destructive",
         });
         setIsUploading(false);
@@ -98,7 +126,7 @@ export default function AdminUploadPage() {
         title,
         author,
         content,
-        imageUrl: uploadedImageUrl, // Use Cloudinary URL or undefined
+        imageUrl: uploadedImageUrl,
     };
 
     const validationResult = vlogPostFormSchema.safeParse(rawFormData);
@@ -204,6 +232,7 @@ export default function AdminUploadPage() {
                 content={content}
                 onChange={setContent}
                 placeholder="Write your vlog content here..."
+                onImageUpload={handleTiptapImageUpload} // Pass the handler
               />
               {getErrorForField('content') && <p className="text-sm text-destructive mt-1">{getErrorForField('content')}</p>}
             </div>
@@ -224,7 +253,7 @@ export default function AdminUploadPage() {
                 </div>
               )}
                <p className="text-xs text-muted-foreground mt-1">
-                 Upload an image for the vlog post.
+                 Upload a featured image for the vlog post (this is separate from images in the content editor).
               </p>
             </div>
 

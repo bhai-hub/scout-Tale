@@ -5,7 +5,7 @@ import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/reac
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
+import ImageExtension from '@tiptap/extension-image'; // Renamed to avoid conflict
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
@@ -14,44 +14,43 @@ import Highlight from '@tiptap/extension-highlight';
 import {
   Bold, Italic, UnderlineIcon, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Link as LinkIcon, Image as ImageIcon, Pilcrow, Undo, Redo,
-  Palette, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus
+  Palette, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus, Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react'; // Added useRef
 
 interface TiptapEditorProps {
   content: string;
   onChange: (newContent: string) => void;
   placeholder?: string;
+  onImageUpload?: (file: File) => Promise<string | undefined>; // Optional callback for image uploads
 }
 
-const TiptapEditor = ({ content, onChange, placeholder }: TiptapEditorProps) => {
+const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
         },
-        // Disable paragraph, as we use Pilcrow icon for it explicitly
-        // paragraph: false, 
       }),
       Underline,
       Link.configure({
-        openOnClick: false, // Open link editor on click
+        openOnClick: false,
         autolink: true,
         linkOnPaste: true,
       }),
-      Image.configure({
-        inline: false, // Allows images to be on their own line
-        allowBase64: true, // For pasting images
+      ImageExtension.configure({ // Use the renamed import
+        inline: false,
+        allowBase64: !!onImageUpload, // Allow base64 only if onImageUpload is not provided for client-side preview
       }),
       Placeholder.configure({ placeholder: placeholder || 'Start writing...' }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      TextStyle, // Required for Color
+      TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
     ],
@@ -64,34 +63,82 @@ const TiptapEditor = ({ content, onChange, placeholder }: TiptapEditorProps) => 
         class:
           'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-[250px] p-4 border border-input rounded-md bg-background',
       },
+      // Handle paste event for images
+      handlePaste: (view, event, slice) => {
+        if (!onImageUpload) return false; // If no upload handler, use default paste behavior
+
+        const items = Array.from(event.clipboardData?.items || []);
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            const file = item.getAsFile();
+            if (file) {
+              handleFileUpload(file); // Upload and insert image
+              return true; // Prevent default paste behavior
+            }
+          }
+        }
+        return false; // Use default paste behavior
+      },
+       // Handle drop event for images
+      handleDrop: (view, event, slice, moved) => {
+        if (!onImageUpload || moved) return false; // If no upload handler or internal move, use default
+
+        const files = Array.from(event.dataTransfer?.files || []);
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            event.preventDefault(); // Prevent default drop
+            handleFileUpload(file); // Upload and insert image
+            return true;
+          }
+        }
+        return false;
+      },
     },
   });
 
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrlInput, setImageUrlInput] = useState(''); // For URL input
   const [linkUrl, setLinkUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-
-  const addImage = useCallback(() => {
-    if (imageUrl && editor) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
-      setImageUrl(''); // Clear input after adding
+  const handleFileUpload = async (file: File) => {
+    if (onImageUpload && editor) {
+      const uploadedUrl = await onImageUpload(file);
+      if (uploadedUrl) {
+        editor.chain().focus().setImage({ src: uploadedUrl }).run();
+      }
     }
-  }, [editor, imageUrl]);
+  };
+  
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+
+  const addImageFromUrl = useCallback(async () => {
+    if (imageUrlInput && editor) {
+      // If onImageUpload is provided, we might want to "proxy" the URL upload
+      // For simplicity, directly inserting URL. For advanced scenarios, you might download and re-upload.
+      editor.chain().focus().setImage({ src: imageUrlInput }).run();
+      setImageUrlInput('');
+    }
+  }, [editor, imageUrlInput]);
+
 
   const setLink = useCallback(() => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes('link').href;
+    // const previousUrl = editor.getAttributes('link').href; // Not used, but good for reference
     
-    // If no URL is provided, unset the link
     if (!linkUrl) {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       setLinkUrl('');
       return;
     }
 
-    // Set or update the link
     editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl, target: '_blank' }).run();
-    setLinkUrl(''); // Clear input
+    setLinkUrl('');
   }, [editor, linkUrl]);
 
 
@@ -102,6 +149,7 @@ const TiptapEditor = ({ content, onChange, placeholder }: TiptapEditorProps) => 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-1 p-2 border border-input rounded-md bg-card">
+        {/* ... (other toolbar buttons remain the same) ... */}
         <Toggle
           size="sm"
           pressed={editor.isActive('bold')}
@@ -219,24 +267,42 @@ const TiptapEditor = ({ content, onChange, placeholder }: TiptapEditorProps) => 
           </PopoverContent>
         </Popover>
 
+        {/* Image Popover */}
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" aria-label="Add image">
               <ImageIcon className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-2">
+          <PopoverContent className="w-80 p-2 space-y-2">
+            {onImageUpload && (
+              <>
+                <Button size="sm" onClick={() => fileInputRef.current?.click()} className="w-full h-8">
+                  <Upload className="mr-2 h-4 w-4" /> Upload from Computer
+                </Button>
+                <Input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={onFileChange}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <Separator />
+              </>
+            )}
             <div className="flex gap-2">
               <Input
                 type="url"
-                placeholder="Enter image URL"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Or paste image URL"
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
                 className="h-8"
               />
-              <Button size="sm" onClick={addImage} className="h-8">Add</Button>
+              <Button size="sm" onClick={addImageFromUrl} className="h-8">Add</Button>
             </div>
-             <p className="text-xs text-muted-foreground mt-1">Or paste an image directly into the editor.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              You can also paste images directly into the editor or drag & drop.
+            </p>
           </PopoverContent>
         </Popover>
         
@@ -340,65 +406,84 @@ const TiptapEditor = ({ content, onChange, placeholder }: TiptapEditorProps) => 
         >
           <Redo className="h-4 w-4" />
         </Button>
+        {/* End of existing toolbar buttons */}
       </div>
       <EditorContent editor={editor} />
-      <BubbleMenu
-        editor={editor}
-        tippyOptions={{ duration: 100 }}
-        className="bg-background border border-input rounded-md shadow-lg p-1 flex gap-1"
-      >
-        <Button
-          size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive('bold') ? 'is-active' : ''}
-        >
-          Bold
-        </Button>
-        <Button
-           size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive('italic') ? 'is-active' : ''}
-        >
-          Italic
-        </Button>
-        <Button
-           size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={editor.isActive('strike') ? 'is-active' : ''}
-        >
-          Strike
-        </Button>
-      </BubbleMenu>
-       <FloatingMenu
-        editor={editor}
-        tippyOptions={{ duration: 100 }}
-        className="bg-background border border-input rounded-md shadow-lg p-1 flex gap-1"
-      >
-        <Button
-          size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}
-        >
-          H1
-        </Button>
-        <Button
-          size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}
-        >
-          H2
-        </Button>
-        <Button
-          size="sm" variant="ghost"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive('bulletList') ? 'is-active' : ''}
-        >
-          Bullet List
-        </Button>
-      </FloatingMenu>
+      {editor && (
+        <>
+          <BubbleMenu
+            editor={editor}
+            tippyOptions={{ duration: 100 }}
+            className="bg-background border border-input rounded-md shadow-lg p-1 flex gap-1"
+          >
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className={editor.isActive('bold') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Bold
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className={editor.isActive('italic') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Italic
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              className={editor.isActive('strike') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Strike
+            </Button>
+             <Button
+              size="sm" variant="ghost"
+              onClick={setLink} // Simplified, assumes linkUrl state is managed elsewhere or by a popover
+              className={editor.isActive('link') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Link
+            </Button>
+          </BubbleMenu>
+          
+          <FloatingMenu
+            editor={editor}
+            tippyOptions={{ duration: 100 }}
+            className="bg-background border border-input rounded-md shadow-lg p-1 flex gap-1"
+          >
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={editor.isActive('heading', { level: 1 }) ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              H1
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={editor.isActive('heading', { level: 2 }) ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              H2
+            </Button>
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className={editor.isActive('bulletList') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Bullet List
+            </Button>
+             <Button
+              size="sm" variant="ghost"
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              className={editor.isActive('blockquote') ? 'is-active bg-accent text-accent-foreground' : ''}
+            >
+              Quote
+            </Button>
+          </FloatingMenu>
+        </>
+      )}
     </div>
   );
 };
 
 export default TiptapEditor;
-

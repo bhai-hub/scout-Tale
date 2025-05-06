@@ -119,11 +119,12 @@
       height: 0;
       pointer-events: none;
     }
-    /* Image styling */
+    /* Image styling specific to Tiptap editor content */
     img {
-      @apply rounded-md my-4 max-w-full h-auto;
-      &.ProseMirror-selectednode {
+      @apply rounded-md my-4 max-w-full h-auto block; /* Ensure images are block and responsive */
+      &.ProseMirror-selectednode { /* Style for selected image in Tiptap */
         outline: 3px solid hsl(var(--primary));
+        @apply ring-2 ring-primary ring-offset-2; /* Add ring for better visibility */
       }
     }
   }
@@ -135,6 +136,13 @@
     }
     a {
        @apply text-primary hover:text-primary/80; /* Adjust for dark if needed */
+    }
+     /* Image styling for selected image in Tiptap - Dark Mode */
+    img {
+      &.ProseMirror-selectednode {
+        outline: 3px solid hsl(var(--primary)); /* Use primary color for dark mode as well, or adjust */
+         @apply ring-2 ring-primary ring-offset-background; /* Ensure offset uses background color */
+      }
     }
   }
 }
