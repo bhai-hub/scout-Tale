@@ -8,22 +8,36 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import TiptapEditor from "@/components/tiptap/TiptapEditor"; // Import TiptapEditor
+import TiptapEditor from "@/components/tiptap/TiptapEditor";
+import { createVlogPost } from "@/actions/vlog"; // Import server action
+import { vlogPostFormSchema, type VlogPostFormData, type VlogPostToInsert } from "@/schemas/vlog"; // Import Zod schema
+import { z } from "zod"; // Import z for error handling
+
+function generateSlug(title: string): string {
+    return title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove non-alphanumeric characters (except spaces and hyphens)
+        .replace(/\s+/g, '-')     // Replace spaces with hyphens
+        .replace(/-+/g, '-');    // Replace multiple hyphens with a single hyphen
+}
 
 export default function AdminUploadPage() {
   const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("Admin"); // Default author
-  const [content, setContent] = useState(""); // State for Tiptap content (HTML)
+  const [author, setAuthor] = useState("Admin");
+  const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState(""); // For image URL input
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
-  const { isAdmin, isLoading } = useAuth();
+  const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const [formErrors, setFormErrors] = useState<z.ZodIssue[]>([]);
 
-  // Effect to redirect if not authenticated
+
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
+    if (!isAuthLoading && !isAdmin) {
         toast({
             title: "Access Denied",
             description: "Please log in as an admin.",
@@ -31,7 +45,7 @@ export default function AdminUploadPage() {
         });
       router.push("/admin/login");
     }
-  }, [isAdmin, isLoading, router, toast]);
+  }, [isAdmin, isAuthLoading, router, toast]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -39,40 +53,73 @@ export default function AdminUploadPage() {
         toast({ title: "Unauthorized", description: "You must be logged in to upload.", variant: "destructive" });
         return;
     }
-    // Basic validation for Tiptap content
-    // Tiptap editor.isEmpty might be true even with empty tags.
-    // A simple check for non-empty text content is usually better.
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    const textContent = tempDiv.textContent || tempDiv.innerText || "";
+    setFormErrors([]); // Clear previous errors
 
-    if (!textContent.trim()) {
-         toast({ title: "Content Missing", description: "Please write some content for your vlog post.", variant: "destructive" });
-         return;
+    const rawFormData: VlogPostFormData = {
+        title,
+        author,
+        content,
+        imageUrl: imageUrl || undefined, // Pass undefined if empty for optional validation
+    };
+
+    const validationResult = vlogPostFormSchema.safeParse(rawFormData);
+
+    if (!validationResult.success) {
+        setFormErrors(validationResult.error.issues);
+        toast({
+            title: "Validation Error",
+            description: "Please check the form for errors.",
+            variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
     }
-
 
     setIsUploading(true);
 
-    // Simulate API call
-    console.log("Uploading:", { title, author, content }); // Content is now HTML
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const dataToSave: VlogPostToInsert = {
+        ...validationResult.data,
+        slug: generateSlug(validationResult.data.title),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+
+    const result = await createVlogPost(dataToSave);
 
     setIsUploading(false);
-    setTitle("");
-    setContent(""); // Reset Tiptap content
-    toast({
-      title: "Vlog Post Uploaded!",
-      description: `"${title}" has been successfully added.`,
-      variant: "default",
-    });
+
+    if (result.success) {
+      setTitle("");
+      setAuthor("Admin"); // Reset to default or clear
+      setContent("");
+      setImageUrl("");
+      toast({
+        title: "Vlog Post Uploaded!",
+        description: `"${dataToSave.title}" has been successfully added.`,
+        variant: "default",
+      });
+      // Optionally redirect or update UI
+      // router.push(`/vlogs/${dataToSave.slug}`);
+    } else {
+      toast({
+        title: "Upload Failed",
+        description: result.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      if (result.errors) {
+        setFormErrors(result.errors);
+      }
+    }
   };
 
-  // Show loading state or access denied message while checking auth
-  if (isLoading || !isAdmin) {
+  const getErrorForField = (fieldName: keyof VlogPostFormData) => {
+    return formErrors.find(err => err.path.includes(fieldName))?.message;
+  }
+
+  if (isAuthLoading || (!isAuthLoading && !isAdmin)) {
     return (
       <div className="flex justify-center items-center h-64">
-         {isLoading ? (
+         {isAuthLoading ? (
              <p>Loading authentication...</p>
          ) : (
              !isAdmin && <p>Redirecting to login...</p>
@@ -81,9 +128,8 @@ export default function AdminUploadPage() {
     );
   }
 
-  // Render the form if authenticated
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-8">
       <Card>
         <CardHeader>
           <CardTitle>Upload New Vlog Post</CardTitle>
@@ -91,57 +137,62 @@ export default function AdminUploadPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter the vlog title"
-                required
-                className="text-base md:text-sm"
+                className="text-base md:text-sm mt-1"
               />
+              {getErrorForField('title') && <p className="text-sm text-destructive mt-1">{getErrorForField('title')}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="author">Author</Label>
               <Input
                 id="author"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 placeholder="Enter the author's name"
-                required
-                className="text-base md:text-sm"
+                className="text-base md:text-sm mt-1"
               />
+              {getErrorForField('author') && <p className="text-sm text-destructive mt-1">{getErrorForField('author')}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="content">Content</Label>
               <TiptapEditor
                 content={content}
                 onChange={setContent}
                 placeholder="Write your vlog content here..."
               />
+              {getErrorForField('content') && <p className="text-sm text-destructive mt-1">{getErrorForField('content')}</p>}
             </div>
 
-             <div className="space-y-2">
-              <Label htmlFor="image">Featured Image (Optional)</Label>
-              <Input id="image" type="file" className="text-base md:text-sm file:text-foreground" />
-              <p className="text-xs text-muted-foreground">
-                 Image upload functionality needs to be implemented (store URL in DB).
+             <div>
+              <Label htmlFor="imageUrl">Featured Image URL (Optional)</Label>
+              <Input
+                id="imageUrl"
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="text-base md:text-sm mt-1"
+              />
+              {getErrorForField('imageUrl') && <p className="text-sm text-destructive mt-1">{getErrorForField('imageUrl')}</p>}
+               <p className="text-xs text-muted-foreground mt-1">
+                 Paste the URL of an image hosted online.
               </p>
             </div>
 
 
             <Button type="submit" disabled={isUploading || !isAdmin} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               {isUploading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Uploading...
-                </div>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                </>
               ) : (
                  <>
                  <UploadCloud className="mr-2 h-4 w-4" /> Upload Post

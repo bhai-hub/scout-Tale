@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { NextPage } from "next";
@@ -7,34 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, Compass, Calendar, User } from "lucide-react"; // Added icons
-
-// Mock data for vlogs - replace with actual data fetching
-interface VlogPost {
-  id: string;
-  title: string;
-  date: string; // Keep as string for simplicity, format later
-  author: string;
-  preview: string; // Short preview text
-  imageUrl: string;
-  imageHint: string; // For AI hint
-}
-
-const initialVlogs: VlogPost[] = [
-  { id: "1", title: "Summer Camp Adventures", date: "2024-07-15", author: "Admin", preview: "Relive the best moments from our annual summer camp...", imageUrl: "https://picsum.photos/400/250", imageHint: "summer camp bonfire" },
-  { id: "2", title: "Knot Tying Workshop", date: "2024-06-28", author: "Admin", preview: "Master essential knots for your next outdoor trip...", imageUrl: "https://picsum.photos/400/250", imageHint: "rope knots hands" },
-  { id: "3", title: "Hiking the Green Trail", date: "2024-06-10", author: "Admin", preview: "Join us on a virtual hike through the scenic Green Trail...", imageUrl: "https://picsum.photos/400/250", imageHint: "forest hiking trail" },
-  { id: "4", title: "Community Service Day", date: "2024-05-22", author: "Admin", preview: "See how our scouts made a difference in the local community...", imageUrl: "https://picsum.photos/400/250", imageHint: "volunteers community service" },
-];
+import { Search, Compass, Calendar, User, Loader2 } from "lucide-react";
+import { getVlogPosts } from "@/actions/vlog"; // Import server action
+import type { VlogPostClient } from "@/schemas/vlog"; // Import type
 
 const Home: NextPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [vlogs, setVlogs] = useState<VlogPost[]>([]); // Initialize with empty array
+  const [vlogs, setVlogs] = useState<VlogPostClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate fetching data on component mount
   useEffect(() => {
-    // Replace with actual API call in a real app
-    setVlogs(initialVlogs);
+    async function fetchVlogs() {
+      setIsLoading(true);
+      try {
+        const fetchedVlogs = await getVlogPosts();
+        setVlogs(fetchedVlogs);
+      } catch (error) {
+        console.error("Failed to fetch vlogs:", error);
+        // Optionally, set an error state to display to the user
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchVlogs();
   }, []);
 
   const filteredVlogs = useMemo(() => {
@@ -43,10 +39,27 @@ const Home: NextPage = () => {
     }
     return vlogs.filter((vlog) =>
       vlog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vlog.preview.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vlog.content.toLowerCase().includes(searchTerm.toLowerCase()) || // Search in content too
       vlog.author.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, vlogs]);
+
+  // Function to generate a preview from HTML content
+  const generatePreview = (htmlContent: string, maxLength: number = 100) => {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlContent;
+    const text = tempDiv.textContent || tempDiv.innerText || "";
+    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+  };
+
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -56,7 +69,7 @@ const Home: NextPage = () => {
           placeholder="Search vlogs..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-4 py-2 text-base md:text-sm" // Adjust padding for icon
+          className="pl-10 pr-4 py-2 text-base md:text-sm"
         />
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
       </div>
@@ -64,15 +77,15 @@ const Home: NextPage = () => {
       {filteredVlogs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVlogs.map((vlog) => (
-            <Card key={vlog.id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+            <Card key={vlog._id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="p-0 relative">
                  <Image
-                    src={vlog.imageUrl}
+                    src={vlog.imageUrl || `https://picsum.photos/seed/${vlog._id}/400/250`} // Fallback placeholder
                     alt={vlog.title}
                     width={400}
                     height={250}
                     className="w-full h-48 object-cover"
-                    data-ai-hint={vlog.imageHint} // Add AI hint
+                    data-ai-hint="scouting nature adventure" // Generic hint
                   />
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-grow">
@@ -83,10 +96,12 @@ const Home: NextPage = () => {
                  </div>
                  <div className="flex items-center text-xs text-muted-foreground mb-3 space-x-2">
                     <Calendar className="h-3 w-3" />
-                    <span>{new Date(vlog.date).toLocaleDateString()}</span> {/* Format date */}
+                    <span>{new Date(vlog.createdAt).toLocaleDateString()}</span>
                  </div>
-                <CardDescription className="text-sm text-foreground/80 mb-4 flex-grow">{vlog.preview}</CardDescription>
-                <Link href={`/vlogs/${vlog.id}`} passHref>
+                <CardDescription className="text-sm text-foreground/80 mb-4 flex-grow">
+                    {generatePreview(vlog.content)}
+                </CardDescription>
+                <Link href={`/vlogs/${vlog.slug}`} passHref>
                   <Button variant="outline" size="sm" className="mt-auto w-full bg-accent text-accent-foreground hover:bg-accent/90 border-accent">
                     Read More
                   </Button>
@@ -98,7 +113,7 @@ const Home: NextPage = () => {
       ) : (
         <div className="text-center text-muted-foreground py-10">
           <Compass className="mx-auto h-12 w-12 mb-4" />
-          <p>No vlogs found matching your search.</p>
+          <p>{searchTerm ? "No vlogs found matching your search." : "No vlog posts yet. Check back soon!"}</p>
         </div>
       )}
     </div>

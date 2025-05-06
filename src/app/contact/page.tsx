@@ -4,21 +4,23 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react'; // Added useRef
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea'; // Import Textarea
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { contactFormSchema, type ContactFormData } from '@/schemas/contact';
 import { submitContactForm } from '@/actions/contact';
 import { Send, Loader2 } from 'lucide-react';
+import type { ZodIssue } from 'zod';
 
 const initialState = {
     success: false,
     message: '',
+    errors: undefined as ZodIssue[] | undefined, // Ensure errors is part of initial state
 };
 
 function SubmitButton() {
@@ -42,6 +44,7 @@ function SubmitButton() {
 export default function ContactPage() {
     const [state, formAction] = useFormState(submitContactForm, initialState);
     const { toast } = useToast();
+    const formRef = useRef<HTMLFormElement>(null); // Ref for the form element
 
     const form = useForm<ContactFormData>({
         resolver: zodResolver(contactFormSchema),
@@ -51,24 +54,32 @@ export default function ContactPage() {
             subject: '',
             message: '',
         },
-        // Use the result from useFormState to manage errors
-        errors: state?.errors, // Pass potential errors from server validation
     });
 
+    // Update react-hook-form errors when server-side errors come in
     useEffect(() => {
-        if (state?.message) {
+        if (state?.errors) {
+            state.errors.forEach((error) => {
+                const fieldName = error.path[0] as keyof ContactFormData;
+                if (fieldName) {
+                    form.setError(fieldName, { type: 'server', message: error.message });
+                }
+            });
+        }
+         // Display toast message
+        if (state?.message && state.message !== initialState.message) { // Check if message actually changed
             toast({
                 title: state.success ? 'Success!' : 'Error',
                 description: state.message,
                 variant: state.success ? 'default' : 'destructive',
             });
 
-            // Reset form on successful submission
             if (state.success) {
-                form.reset();
-                // Optionally reset the form state managed by useFormState
-                // This might require adjusting the action or handling state reset differently
-                // For now, react-hook-form's reset is sufficient for the UI
+                form.reset(); // Reset react-hook-form fields
+                formRef.current?.reset(); // Reset native form fields
+                // Reset the formAction state by "re-invoking" it with initial state or a special reset action
+                // For now, we clear client-side, server state will be fresh on next submit.
+                // To truly reset formState, you might need a more complex pattern or a key prop on the form.
             }
         }
     }, [state, toast, form]);
@@ -81,24 +92,20 @@ export default function ContactPage() {
                     <CardDescription>Have questions? Fill out the form below and we'll get back to you.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {/* We use formAction from useFormState for submission */}
-                    {/* react-hook-form is mainly for client-side validation display */}
-                    <form action={formAction} className="space-y-6">
-                        {/* Name Field */}
+                    <form ref={formRef} action={formAction} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="name">Name</Label>
                             <Input
                                 id="name"
                                 {...form.register('name')}
                                 placeholder="Your Name"
-                                aria-invalid={form.formState.errors.name ? "true" : "false"}
+                                aria-invalid={!!form.formState.errors.name}
                             />
                             {form.formState.errors.name && (
                                 <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
                             )}
                         </div>
 
-                        {/* Email Field */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -106,28 +113,26 @@ export default function ContactPage() {
                                 type="email"
                                 {...form.register('email')}
                                 placeholder="your.email@example.com"
-                                aria-invalid={form.formState.errors.email ? "true" : "false"}
+                                aria-invalid={!!form.formState.errors.email}
                             />
                             {form.formState.errors.email && (
                                 <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
                             )}
                         </div>
 
-                        {/* Subject Field */}
                         <div className="space-y-2">
                             <Label htmlFor="subject">Subject</Label>
                             <Input
                                 id="subject"
                                 {...form.register('subject')}
                                 placeholder="Regarding..."
-                                aria-invalid={form.formState.errors.subject ? "true" : "false"}
+                                aria-invalid={!!form.formState.errors.subject}
                             />
                             {form.formState.errors.subject && (
                                 <p className="text-sm text-destructive">{form.formState.errors.subject.message}</p>
                             )}
                         </div>
 
-                        {/* Message Field */}
                         <div className="space-y-2">
                             <Label htmlFor="message">Message</Label>
                             <Textarea
@@ -135,7 +140,7 @@ export default function ContactPage() {
                                 {...form.register('message')}
                                 placeholder="Your message here..."
                                 rows={5}
-                                aria-invalid={form.formState.errors.message ? "true" : "false"}
+                                aria-invalid={!!form.formState.errors.message}
                             />
                             {form.formState.errors.message && (
                                 <p className="text-sm text-destructive">{form.formState.errors.message.message}</p>
@@ -144,11 +149,10 @@ export default function ContactPage() {
                         
                         <SubmitButton />
 
-                         {/* Display general form message from server action (non-field specific errors) */}
-                         {!state.success && state.message && !form.formState.isValid && (
+                         {/* Display general form message from server action if it's not about specific field errors */}
+                         {!state.success && state.message && !state.errors && (
                             <p className="text-sm text-destructive text-center">{state.message}</p>
                          )}
-
                     </form>
                 </CardContent>
             </Card>

@@ -1,21 +1,20 @@
 
-"use client"; // Add this directive because we use hooks
+"use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Mountain, LogOut, LogIn, UploadCloud, Mail } from "lucide-react"; // Added Mail icon
-import { useAuth } from "@/hooks/use-auth"; // Import auth hook
-import { useRouter } from "next/navigation"; // Import router
+import { Menu, Mountain, LogOut, LogIn, UploadCloud, Mail, MessageSquareText } from "lucide-react"; // Added MessageSquareText
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
-  const { isAdmin, logout } = useAuth(); // Get auth state and logout function
+  const { isAdmin, logout } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    router.push("/"); // Redirect to home after logout
-    // Optionally show a toast message
+    router.push("/");
   };
 
   return (
@@ -36,10 +35,15 @@ export default function Header() {
           <Link href="/contact" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
             Contact Us
           </Link>
-          {isAdmin && ( // Show Admin Upload only if logged in
-             <Link href="/admin/upload" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
-                Admin Upload
-             </Link>
+          {isAdmin && (
+             <>
+                <Link href="/admin/upload" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
+                    Admin Upload
+                </Link>
+                <Link href="/admin/contact-messages" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
+                    View Contacts
+                </Link>
+             </>
           )}
         </nav>
 
@@ -75,17 +79,21 @@ export default function Header() {
                    <span className="text-primary">Scout Tales</span>
                 </Link>
                 <Link href="/" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
-                  {/* Icon placeholder if needed */} Vlogs
+                   Vlogs
                 </Link>
                 <Link href="/contact" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
                   <Mail className="h-5 w-5" /> Contact Us
                 </Link>
-                 {isAdmin && ( // Mobile Admin Upload
-                     <Link href="/admin/upload" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
-                      <UploadCloud className="h-5 w-5" /> Admin Upload
-                     </Link>
+                 {isAdmin && (
+                     <>
+                        <Link href="/admin/upload" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+                        <UploadCloud className="h-5 w-5" /> Admin Upload
+                        </Link>
+                        <Link href="/admin/contact-messages" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+                            <MessageSquareText className="h-5 w-5" /> View Contacts
+                        </Link>
+                     </>
                  )}
-                 {/* Mobile Auth Button/Link */}
                  {isAdmin ? (
                     <Button variant="ghost" onClick={handleLogout} className="flex items-center justify-start gap-4 px-2.5 text-muted-foreground hover:text-foreground">
                        <LogOut className="h-5 w-5" /> Logout

@@ -2,21 +2,19 @@
 'use server';
 
 import { z } from 'zod';
-import { contactFormSchema, type ContactFormData, type ContactMessage } from '@/schemas/contact';
+import { contactFormSchema, type ContactFormData, type ContactMessageToInsert } from '@/schemas/contact';
 import clientPromise from '@/lib/mongodb';
 
 interface ActionResult {
     success: boolean;
     message: string;
+    errors?: z.ZodIssue[]; // Add errors for more detailed feedback
 }
 
 export async function submitContactForm(
-    prevState: ActionResult | null, // Required for useFormState
+    prevState: ActionResult | null,
     formData: FormData
 ): Promise<ActionResult> {
-
-    // Simulate network delay
-    // await new Promise(resolve => setTimeout(resolve, 1000));
 
     const rawFormData = {
         name: formData.get('name'),
@@ -25,30 +23,26 @@ export async function submitContactForm(
         message: formData.get('message'),
     };
 
-    // Validate form data using Zod
     const validatedFields = contactFormSchema.safeParse(rawFormData);
 
-    // If form validation fails, return errors
     if (!validatedFields.success) {
-        // Aggregate error messages (optional, could return full error object)
-        const errorMessages = validatedFields.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        console.error('Validation Error:', validatedFields.error.flatten());
         return {
             success: false,
-            message: `Invalid form data. Errors: ${errorMessages}`,
-            // errors: validatedFields.error.flatten().fieldErrors, // Or return structured errors
+            message: `Invalid form data. Please check the fields.`,
+            errors: validatedFields.error.issues,
         };
     }
 
-    const dataToSave: Omit<ContactMessage, '_id'> = {
+    // Use ContactMessageToInsert for the data to be saved, as _id is auto-generated
+    const dataToSave: ContactMessageToInsert = {
         ...validatedFields.data,
         createdAt: new Date(),
     };
 
     try {
         const client = await clientPromise;
-        const db = client.db(); // Use default DB from connection string or specify one: client.db("yourDbName")
-        const collection = db.collection<Omit<ContactMessage, '_id'>>('contactMessages'); // Specify collection and type
+        const db = client.db();
+        const collection = db.collection<ContactMessageToInsert>('contactMessages');
 
         const result = await collection.insertOne(dataToSave);
 
@@ -62,6 +56,9 @@ export async function submitContactForm(
 
     } catch (error) {
         console.error('Database Error:', error);
+        if (error instanceof z.ZodError) { // Handle Zod errors during insertion (less likely here)
+            return { success: false, message: 'Data formatting error before save.', errors: error.issues };
+        }
         return { success: false, message: 'Database error. Failed to send message.' };
     }
 }
