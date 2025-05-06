@@ -3,24 +3,19 @@
 
 import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from 'next/dynamic'; // Import dynamic
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-// Removed Textarea import
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, ShieldAlert } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-
-// Dynamically import ReactQuill to avoid SSR issues and potential findDOMNode errors
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import TiptapEditor from "@/components/tiptap/TiptapEditor"; // Import TiptapEditor
 
 export default function AdminUploadPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("Admin"); // Default author
-  const [content, setContent] = useState(""); // State for Quill content (HTML)
+  const [content, setContent] = useState(""); // State for Tiptap content (HTML)
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading } = useAuth();
@@ -44,10 +39,14 @@ export default function AdminUploadPage() {
         toast({ title: "Unauthorized", description: "You must be logged in to upload.", variant: "destructive" });
         return;
     }
-    // Basic validation: check if content is empty or just contains empty HTML tags
-    // Remove leading/trailing whitespace and check if the stripped content (excluding tags) is empty
-    const strippedContent = content.replace(/<[^>]*>/g, '').trim();
-    if (!strippedContent) {
+    // Basic validation for Tiptap content
+    // Tiptap editor.isEmpty might be true even with empty tags.
+    // A simple check for non-empty text content is usually better.
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const textContent = tempDiv.textContent || tempDiv.innerText || "";
+
+    if (!textContent.trim()) {
          toast({ title: "Content Missing", description: "Please write some content for your vlog post.", variant: "destructive" });
          return;
     }
@@ -61,16 +60,12 @@ export default function AdminUploadPage() {
 
     setIsUploading(false);
     setTitle("");
-    setContent(""); // Reset Quill content
-    // Reset author if needed, or keep as 'Admin'
-    // setAuthor("Admin");
+    setContent(""); // Reset Tiptap content
     toast({
       title: "Vlog Post Uploaded!",
       description: `"${title}" has been successfully added.`,
       variant: "default",
     });
-     // Optionally redirect after successful upload
-     // router.push('/');
   };
 
   // Show loading state or access denied message while checking auth
@@ -80,42 +75,15 @@ export default function AdminUploadPage() {
          {isLoading ? (
              <p>Loading authentication...</p>
          ) : (
-            // Render null or a minimal message if already redirecting in useEffect
              !isAdmin && <p>Redirecting to login...</p>
-            // Or keep the ShieldAlert if preferred:
-            // <div className="text-center text-destructive">
-            //      <ShieldAlert className="mx-auto h-12 w-12 mb-4" />
-            //      <p className="font-semibold">Access Denied</p>
-            //      <p>Redirecting to login...</p>
-            // </div>
          )}
       </div>
     );
   }
 
-  // Quill modules configuration (optional, customize as needed)
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}],
-      ['link', 'image'], // Add image upload capabilities if backend supports it
-      ['clean']
-    ],
-  };
-
-  // Quill formats (ensure these match the toolbar options)
-  const quillFormats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'indent',
-    'link', 'image'
-  ];
-
-
   // Render the form if authenticated
   return (
-    <div className="max-w-4xl mx-auto"> {/* Slightly wider max-width */}
+    <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Upload New Vlog Post</CardTitle>
@@ -149,21 +117,11 @@ export default function AdminUploadPage() {
 
             <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
-              {/* Replace Textarea with ReactQuill */}
-               {/* Wrapper div for styling context if needed, ensure editor styles take precedence */}
-               <div className="bg-background rounded-md border border-input prose dark:prose-invert max-w-none">
-                  {/* ReactQuill is dynamically imported with ssr: false, no need for typeof window check */}
-                  <ReactQuill
-                     theme="snow"
-                     value={content}
-                     onChange={setContent} // Directly sets HTML content
-                     modules={quillModules}
-                     formats={quillFormats}
-                     placeholder="Write your vlog content here..."
-                     // Apply Quill's own classes and use Tailwind utilities for container/toolbar
-                     className="[&_.ql-editor]:min-h-[250px] [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-toolbar]:border-input [&_.ql-container]:border-input"
-                  />
-               </div>
+              <TiptapEditor
+                content={content}
+                onChange={setContent}
+                placeholder="Write your vlog content here..."
+              />
             </div>
 
              <div className="space-y-2">

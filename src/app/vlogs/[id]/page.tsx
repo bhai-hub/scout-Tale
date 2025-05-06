@@ -9,7 +9,7 @@ import { Calendar, User, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles for rendered elements
+// Removed Quill styles import: import 'react-quill/dist/quill.snow.css';
 
 // Mock data - replace with actual data fetching logic
 interface VlogPost {
@@ -17,7 +17,7 @@ interface VlogPost {
   title: string;
   date: string;
   author: string;
-  content: string; // Full content (HTML from Quill)
+  content: string; // Full content (HTML from Tiptap)
   imageUrl: string;
   imageHint: string;
 }
@@ -113,16 +113,12 @@ export default function VlogPostPage() {
                 <span>{new Date(vlog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
           </div>
-           {/* Render HTML content safely using dangerouslySetInnerHTML */}
-           {/* Apply Quill's base styling class for structure, rely on globals.css for typography */}
+           {/* Render HTML content from Tiptap */}
+           {/* Using prose class from Tailwind Typography for basic styling */}
            <div
-             className="ql-snow" // Base Quill theme class
-           >
-                <div
-                  className="ql-editor" // Apply Quill editor class, styling comes from globals.css
-                  dangerouslySetInnerHTML={{ __html: vlog.content }}
-                />
-           </div>
+             className="prose dark:prose-invert max-w-none" // Apply prose for basic styling
+             dangerouslySetInnerHTML={{ __html: vlog.content }}
+           />
         </CardContent>
       </Card>
     </div>

@@ -91,210 +91,52 @@
     /* font-family: var(--font-geist-sans), sans-serif; */ /* Remove font-family definition */
   }
 
-   /* --- React Quill Specific Overrides --- */
-
-  /* Toolbar Styling */
-  .ql-toolbar {
-    @apply rounded-t-md border-b-0 border-input bg-card; /* Match card/input styles, remove bottom border */
-  }
-
-  /* Container Styling (holds the editor) */
-  .ql-container {
-    @apply rounded-b-md border border-input text-base; /* Match card/input styles, ensure border */
-    font-size: inherit; /* Inherit font size from parent */
-    font-family: inherit; /* Inherit font family */
-  }
-
-  /* Editor Area Styling */
-  .ql-editor {
-    @apply min-h-[250px] p-4 leading-relaxed caret-primary; /* Consistent padding, line height, use primary color for cursor */
-    color: hsl(var(--foreground)); /* Use theme foreground color */
-    font-family: inherit; /* Ensure font consistency */
-    tab-size: 4;
-    -moz-tab-size: 4;
-    /* Override Quill's default link color */
+  /* Tiptap editor content styling using Tailwind Typography plugin */
+  /* Ensure this is applied to the div wrapping the Tiptap EditorContent */
+  .tiptap.ProseMirror { /* Target Tiptap's editor content area */
+    @apply prose dark:prose-invert max-w-none;
+    /* Customize prose styles if needed */
+    p {
+      @apply my-2; /* Example: Adjust paragraph margin */
+    }
+    h1, h2, h3, h4, h5, h6 {
+      @apply mt-4 mb-2;
+    }
+    ul, ol {
+      @apply my-2 pl-6;
+    }
+    blockquote {
+      @apply my-2 pl-4 border-l-4 border-border italic text-muted-foreground;
+    }
     a {
-        @apply text-primary underline hover:no-underline;
+      @apply text-primary hover:text-primary/80;
     }
-     /* Prose styles applied directly here for specificity if needed */
-     h1, h2, h3, h4, h5, h6 { @apply font-semibold mt-6 mb-3; }
-     h1 { @apply text-2xl; }
-     h2 { @apply text-xl; }
-     h3 { @apply text-lg; }
-     p { @apply mb-4 text-base; }
-     strong { @apply font-semibold; }
-     blockquote { @apply border-l-4 border-border pl-4 italic text-muted-foreground my-4; }
-     ul { @apply list-disc list-inside mb-4 pl-4; }
-     ol { @apply list-decimal list-inside mb-4 pl-4; }
-     li { @apply mb-1; }
-     code { @apply bg-muted text-muted-foreground px-1 py-0.5 rounded text-sm font-mono; } /* Specify mono */
-     pre { @apply bg-muted p-4 rounded my-4 overflow-x-auto text-sm font-mono; } /* Specify mono */
-     hr { @apply border-border my-6; }
-     img { @apply rounded-md my-4 max-w-full h-auto; }
-  }
-
-
-  /* Placeholder Styling */
-  .ql-editor.ql-blank::before {
-    @apply text-muted-foreground not-italic left-4 right-4; /* Style placeholder like input placeholder */
-    content: attr(data-placeholder); /* Use the data-placeholder attribute */
-    font-style: normal; /* Override quill's default italic placeholder */
-    pointer-events: none; /* Make it non-interactive */
-    position: absolute;
-  }
-
-  /* Button/Picker Visuals in Toolbar */
-   .ql-snow .ql-picker-label,
-   .ql-snow .ql-picker.ql-header .ql-picker-label::before, /* Target header picker specifically */
-   .ql-snow .ql-picker.ql-font .ql-picker-label::before /* Target font picker specifically */
-   {
-     @apply text-foreground;
-     color: hsl(var(--foreground)); /* Ensure color is applied */
-   }
-   .ql-snow .ql-active .ql-picker-label, /* Active state */
-   .ql-snow .ql-picker-options .ql-active /* Active option */
-    {
-     @apply text-primary; /* Use primary color for active state */
-     color: hsl(var(--primary));
-   }
-
-   .ql-snow .ql-picker-options {
-      @apply bg-popover border border-border shadow-md rounded-sm text-popover-foreground; /* Use popover styles */
-   }
-   .ql-snow .ql-picker-item {
-      @apply text-popover-foreground; /* Ensure options use correct text color */
-   }
-   .ql-snow .ql-picker-item:hover,
-   .ql-snow .ql-picker-item.ql-selected {
-      @apply bg-accent text-accent-foreground; /* Use accent for selection/hover */
-   }
-
-   /* Icon Colors */
-   .ql-snow .ql-stroke {
-      stroke: hsl(var(--foreground) / 0.7);
-   }
-   .ql-snow .ql-fill {
-      fill: hsl(var(--foreground) / 0.7);
-   }
-   .ql-snow .ql-active .ql-stroke { /* Active icon state */
-      stroke: hsl(var(--primary));
-   }
-    .ql-snow .ql-active .ql-fill { /* Active icon state */
-      fill: hsl(var(--primary));
-   }
-
-
-   /* Link Tooltip Styling */
-   .ql-snow .ql-tooltip {
-      @apply bg-popover border border-border rounded-md shadow-lg text-foreground p-2 z-10; /* Popover styles, ensure z-index */
-      /* Positioning adjustments might be needed depending on layout */
-   }
-   .ql-snow .ql-tooltip input[type=text] {
-      @apply bg-background border border-input rounded px-2 py-1 text-sm text-foreground focus:ring-ring focus:ring-1; /* Input styles */
-   }
-   /* Style tooltip action/remove buttons */
-   .ql-snow .ql-tooltip a {
-      @apply text-sm px-2 py-1 rounded;
-   }
-   .ql-snow .ql-tooltip a.ql-action::before {
-      @apply text-primary font-semibold border border-primary px-1.5 py-0.5 rounded text-xs; /* Match button variant="outline" */
-      content: 'Save';
-      margin-left: 0.5rem; /* Add space */
-   }
-   .ql-snow .ql-tooltip a.ql-remove::before {
-      @apply text-destructive font-semibold border border-destructive px-1.5 py-0.5 rounded text-xs; /* Match button destructive outline */
-      content: 'Remove';
-      margin-left: 0.5rem; /* Add space */
-   }
-   .ql-snow .ql-tooltip.ql-editing a.ql-preview {
-      display: none; /* Hide preview link when editing */
-   }
-
-   /* --- Dark Mode Overrides --- */
-   .dark .ql-editor {
-      color: hsl(var(--foreground));
-      caret-color: hsl(var(--primary));
-       a {
-        @apply text-primary;
-      }
-       /* Dark Prose styles applied directly here */
-       h1, h2, h3, h4, h5, h6 { @apply text-foreground; }
-       p { @apply text-foreground/90; }
-       strong { @apply text-foreground; }
-       blockquote { @apply border-border text-muted-foreground; }
-       code { @apply bg-muted text-muted-foreground; }
-       pre { @apply bg-muted text-muted-foreground; }
-       pre code { @apply bg-transparent; } /* Code within pre should be transparent */
-       hr { @apply border-border/50; }
-   }
-   .dark .ql-editor.ql-blank::before {
+    /* Ensure placeholder has themed color */
+    .ProseMirror p.is-editor-empty:first-child::before {
       color: hsl(var(--muted-foreground));
-   }
-
-   .dark .ql-toolbar {
-      @apply border-input bg-card;
-   }
-    .dark .ql-container {
-      @apply border-input;
-   }
-
-   .dark .ql-snow .ql-stroke {
-       stroke: hsl(var(--foreground) / 0.7);
-   }
-   .dark .ql-snow .ql-fill {
-       fill: hsl(var(--foreground) / 0.7);
-   }
-   .dark .ql-snow .ql-active .ql-stroke {
-       stroke: hsl(var(--primary));
-   }
-   .dark .ql-snow .ql-active .ql-fill {
-       fill: hsl(var(--primary));
-   }
-
-   .dark .ql-snow .ql-picker-label,
-   .dark .ql-snow .ql-picker.ql-header .ql-picker-label::before,
-   .dark .ql-snow .ql-picker.ql-font .ql-picker-label::before
-    {
-        @apply text-foreground;
-        color: hsl(var(--foreground));
+      content: attr(data-placeholder);
+      float: left;
+      height: 0;
+      pointer-events: none;
     }
-    .dark .ql-snow .ql-active .ql-picker-label {
-     @apply text-primary;
-     color: hsl(var(--primary));
-   }
-
-
-     .dark .ql-snow .ql-picker-options {
-       @apply bg-popover border-border text-popover-foreground;
-    }
-    .dark .ql-snow .ql-picker-item {
-      @apply text-popover-foreground;
-    }
-     .dark .ql-snow .ql-picker-item:hover,
-     .dark .ql-snow .ql-picker-item.ql-selected {
-       @apply bg-accent text-accent-foreground;
-     }
-
-      .dark .ql-snow .ql-tooltip {
-         @apply bg-popover border-border text-foreground;
+    /* Image styling */
+    img {
+      @apply rounded-md my-4 max-w-full h-auto;
+      &.ProseMirror-selectednode {
+        outline: 3px solid hsl(var(--primary));
       }
-      .dark .ql-snow .ql-tooltip input[type=text] {
-         @apply bg-background border-input text-foreground focus:ring-ring;
-      }
-       .dark .ql-snow .ql-tooltip a.ql-action::before {
-          border-color: hsl(var(--primary)); /* Use primary in dark mode */
-          color: hsl(var(--primary));
-       }
-       .dark .ql-snow .ql-tooltip a.ql-remove::before {
-          border-color: hsl(var(--destructive));
-          color: hsl(var(--destructive));
-       }
+    }
+  }
 
-    /* Remove Tailwind Prose application from Quill editor via class if previously added */
-    /* .ql-editor.prose { ... } */
-    /* .dark .ql-editor.prose { ... } */
-    /* Let the direct styles within .ql-editor handle typography */
-
+  .dark .tiptap.ProseMirror {
+     /* Placeholder for dark mode */
+    .ProseMirror p.is-editor-empty:first-child::before {
+      color: hsl(var(--muted-foreground));
+    }
+    a {
+       @apply text-primary hover:text-primary/80; /* Adjust for dark if needed */
+    }
+  }
 }
 
 @layer components {
