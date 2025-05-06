@@ -1,6 +1,4 @@
 
-'use server';
-
 import { z } from 'zod';
 // Ensure ObjectId is imported if you plan to use it for schema validation directly
 // import { ObjectId } from 'mongodb'; // Not strictly needed for zod schema if validating post-fetch or pre-insert
@@ -41,3 +39,4 @@ export type VlogPostToInsert = z.infer<typeof vlogPostToInsertSchema>;
 //   _id: z.custom<ObjectId>((val) => val instanceof ObjectId, "Invalid ObjectId"),
 // });
 // export type VlogPostStored = z.infer<typeof vlogPostStoredSchema>;
+
