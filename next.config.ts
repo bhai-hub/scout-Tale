@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  serverActions: {
+    bodySizeLimit: '5mb', // Increase body size limit for Server Actions to 5MB
+  },
 };
 
 export default nextConfig;
