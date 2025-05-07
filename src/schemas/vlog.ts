@@ -5,7 +5,7 @@ export const vlogPostFormSchema = z.object({
   title: z.string().min(5, { message: "Title must be at least 5 characters." }).max(200, { message: "Title cannot exceed 200 characters." }),
   author: z.string().min(2, { message: "Author must be at least 2 characters." }).max(100, { message: "Author cannot exceed 100 characters." }),
   content: z.string().min(50, { message: "Content must be at least 50 characters." }),
-  // imageUrl is removed as featured image is no longer part of the form
+  featuredImageUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
 
 export type VlogPostFormData = z.infer<typeof vlogPostFormSchema>;
@@ -17,7 +17,6 @@ export const vlogPostClientSchema = vlogPostFormSchema.extend({
   slug: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  // imageUrl is removed
 });
 
 export type VlogPostClient = z.infer<typeof vlogPostClientSchema>;
@@ -29,7 +28,6 @@ export const vlogPostToInsertSchema = vlogPostFormSchema.extend({
     slug: z.string(),
     createdAt: z.date(),
     updatedAt: z.date(),
-    // imageUrl is removed
 });
 export type VlogPostToInsert = z.infer<typeof vlogPostToInsertSchema>;
 
@@ -37,6 +35,6 @@ export type VlogPostToInsert = z.infer<typeof vlogPostToInsertSchema>;
 // import { ObjectId } from 'mongodb'; // Make sure mongodb is a dependency
 // export const vlogPostStoredSchema = vlogPostToInsertSchema.extend({
 //   _id: z.custom<ObjectId>((val) => val instanceof ObjectId, "Invalid ObjectId"),
-//   // imageUrl would be removed here too
 // });
 // export type VlogPostStored = z.infer<typeof vlogPostStoredSchema>;
+

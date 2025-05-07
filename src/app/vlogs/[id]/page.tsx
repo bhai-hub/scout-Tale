@@ -4,8 +4,9 @@
 import { useParams, useRouter } 
 from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Image from 'next/image'; // Import next/image
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; 
-import { Calendar, User, ArrowLeft, Loader2 } from 'lucide-react'; 
+import { Calendar, User, ArrowLeft, Loader2, Mountain } from 'lucide-react'; 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +30,8 @@ export default function VlogPostPage() {
             setVlog(foundVlog);
           } else {
             console.warn(`Vlog post with slug "${slug}" not found.`);
-            // router.push('/404'); // Consider a custom not-found page for vlogs
+            // Consider redirecting to a 404 page if desired
+            // router.push('/404'); 
           }
         } catch (error) {
           console.error("Failed to fetch vlog post:", error);
@@ -45,7 +47,7 @@ export default function VlogPostPage() {
     return (
        <div className="max-w-3xl mx-auto space-y-6 py-8">
           <Skeleton className="h-9 w-32 mb-6" /> {/* Back button */}
-          {/* Removed Skeleton for Image as featured image is removed */}
+          <Skeleton className="h-60 w-full rounded-md" /> {/* Featured Image Skeleton */}
           <Skeleton className="h-8 w-3/4 mt-4" /> {/* Title */}
           <div className="flex space-x-4 mt-2">
              <Skeleton className="h-4 w-24" /> {/* Author */}
@@ -85,7 +87,25 @@ export default function VlogPostPage() {
          </Button>
        </Link>
       <Card className="overflow-hidden shadow-lg">
-         {/* Removed CardHeader and Image component for featured image */}
+         {vlog.featuredImageUrl && (
+             <CardHeader className="p-0 relative aspect-video">
+                <Image
+                    src={vlog.featuredImageUrl}
+                    alt={vlog.title || "Featured image"}
+                    fill
+                    priority // Prioritize loading for LCP
+                    style={{ objectFit: 'cover' }}
+                    className="rounded-t-lg"
+                    data-ai-hint="blog header image"
+                    sizes="(max-width: 1024px) 100vw, 896px" // 896px is max-w-3xl approx
+                />
+             </CardHeader>
+         )}
+         {!vlog.featuredImageUrl && (
+            <div className="aspect-video bg-muted flex items-center justify-center rounded-t-lg">
+                <Mountain className="h-24 w-24 text-muted-foreground" />
+            </div>
+         )}
         <CardContent className="p-6 space-y-4">
           <CardTitle className="text-2xl md:text-3xl font-bold">{vlog.title}</CardTitle>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -107,3 +127,4 @@ export default function VlogPostPage() {
     </div>
   );
 }
+

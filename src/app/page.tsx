@@ -3,13 +3,14 @@
 
 import type { NextPage } from "next";
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image"; // Import next/image
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, Compass, Calendar, User, Loader2, ImageOff } from "lucide-react"; // Added ImageOff
-import { getVlogPosts } from "@/actions/vlog"; // Import server action
-import type { VlogPostClient } from "@/schemas/vlog"; // Import type
+import { Search, Compass, Calendar, User, Loader2, ImageOff, Mountain } from "lucide-react";
+import { getVlogPosts } from "@/actions/vlog";
+import type { VlogPostClient } from "@/schemas/vlog";
 
 const Home: NextPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,7 +25,6 @@ const Home: NextPage = () => {
         setVlogs(fetchedVlogs);
       } catch (error) {
         console.error("Failed to fetch vlogs:", error);
-        // Optionally, set an error state to display to the user
       } finally {
         setIsLoading(false);
       }
@@ -38,12 +38,11 @@ const Home: NextPage = () => {
     }
     return vlogs.filter((vlog) =>
       vlog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vlog.content.toLowerCase().includes(searchTerm.toLowerCase()) || // Search in content too
+      vlog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vlog.author.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, vlogs]);
 
-  // Function to generate a preview from HTML content
   const generatePreview = (htmlContent: string, maxLength: number = 100) => {
     if (typeof document !== 'undefined') {
         const tempDiv = document.createElement("div");
@@ -51,7 +50,7 @@ const Home: NextPage = () => {
         const text = tempDiv.textContent || tempDiv.innerText || "";
         return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
     }
-    return ""; // Return empty string or some placeholder if document is not available
+    return ""; 
   };
 
 
@@ -80,9 +79,22 @@ const Home: NextPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVlogs.map((vlog) => (
             <Card key={vlog._id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="p-0 relative aspect-video bg-muted flex items-center justify-center">
-                 {/* Removed featured image, showing a placeholder icon instead */}
-                  <ImageOff className="h-16 w-16 text-muted-foreground" />
+              <CardHeader className="p-0 relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                 {vlog.featuredImageUrl ? (
+                    <Image
+                        src={vlog.featuredImageUrl}
+                        alt={vlog.title || "Featured image"}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        data-ai-hint="featured blog image"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary/50">
+                        <Mountain className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                 )}
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-grow">
                 <CardTitle className="text-lg font-semibold mb-2">{vlog.title}</CardTitle>
@@ -117,3 +129,4 @@ const Home: NextPage = () => {
 };
 
 export default Home;
+
