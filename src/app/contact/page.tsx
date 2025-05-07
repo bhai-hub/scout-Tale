@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react'; // Changed from 'react-dom'
+import { useFormStatus } from 'react-dom'; // useFormStatus is still from 'react-dom'
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useRef } from 'react'; // Added useRef
+import { useEffect, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import type { ZodIssue } from 'zod';
 const initialState = {
     success: false,
     message: '',
-    errors: undefined as ZodIssue[] | undefined, // Ensure errors is part of initial state
+    errors: undefined as ZodIssue[] | undefined,
 };
 
 function SubmitButton() {
@@ -42,9 +43,9 @@ function SubmitButton() {
 
 
 export default function ContactPage() {
-    const [state, formAction] = useFormState(submitContactForm, initialState);
+    const [state, formAction] = useActionState(submitContactForm, initialState); // Changed to useActionState
     const { toast } = useToast();
-    const formRef = useRef<HTMLFormElement>(null); // Ref for the form element
+    const formRef = useRef<HTMLFormElement>(null);
 
     const form = useForm<ContactFormData>({
         resolver: zodResolver(contactFormSchema),
@@ -56,7 +57,6 @@ export default function ContactPage() {
         },
     });
 
-    // Update react-hook-form errors when server-side errors come in
     useEffect(() => {
         if (state?.errors) {
             state.errors.forEach((error) => {
@@ -66,8 +66,7 @@ export default function ContactPage() {
                 }
             });
         }
-         // Display toast message
-        if (state?.message && state.message !== initialState.message) { // Check if message actually changed
+        if (state?.message && state.message !== initialState.message) { 
             toast({
                 title: state.success ? 'Success!' : 'Error',
                 description: state.message,
@@ -75,11 +74,8 @@ export default function ContactPage() {
             });
 
             if (state.success) {
-                form.reset(); // Reset react-hook-form fields
-                formRef.current?.reset(); // Reset native form fields
-                // Reset the formAction state by "re-invoking" it with initial state or a special reset action
-                // For now, we clear client-side, server state will be fresh on next submit.
-                // To truly reset formState, you might need a more complex pattern or a key prop on the form.
+                form.reset(); 
+                formRef.current?.reset(); 
             }
         }
     }, [state, toast, form]);
@@ -149,7 +145,6 @@ export default function ContactPage() {
                         
                         <SubmitButton />
 
-                         {/* Display general form message from server action if it's not about specific field errors */}
                          {!state.success && state.message && !state.errors && (
                             <p className="text-sm text-destructive text-center">{state.message}</p>
                          )}
@@ -159,3 +154,4 @@ export default function ContactPage() {
         </div>
     );
 }
+
