@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent, useEffect, type ChangeEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { createVlogPost } from "@/actions/vlog";
 import { uploadImageToCloudinary } from "@/actions/cloudinary";
 import { vlogPostFormSchema, type VlogPostFormData, type VlogPostToInsert } from "@/schemas/vlog";
 import { z } from "zod";
-import Image from "next/image";
 
 function generateSlug(title: string): string {
     return title
@@ -30,8 +29,6 @@ export default function AdminUploadPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("Admin");
   const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false); // For overall form submission
   const { toast } = useToast();
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
@@ -50,26 +47,10 @@ export default function AdminUploadPage() {
     }
   }, [isAdmin, isAuthLoading, router, toast]);
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setImageFile(null);
-      setImagePreview(null);
-    }
-  };
 
   const handleTiptapImageUpload = async (file: File): Promise<string | undefined> => {
     const formData = new FormData();
     formData.append('file', file);
-    
-    // Loading state is handled within TiptapEditor component now
     
     const uploadResult = await uploadImageToCloudinary(formData);
     
@@ -100,31 +81,10 @@ export default function AdminUploadPage() {
     setFormErrors([]);
     setIsUploading(true);
 
-    let uploadedImageUrl: string | undefined = undefined;
-
-    if (imageFile) {
-      const imageFormData = new FormData();
-      imageFormData.append('file', imageFile);
-      const uploadResult = await uploadImageToCloudinary(imageFormData);
-      if (uploadResult.success && uploadResult.imageUrl) {
-        uploadedImageUrl = uploadResult.imageUrl;
-      } else {
-        toast({
-          title: "Featured Image Upload Failed",
-          description: uploadResult.error || "Could not upload featured image to Cloudinary.",
-          variant: "destructive",
-        });
-        setIsUploading(false);
-        return;
-      }
-    }
-
-
     const rawFormData: VlogPostFormData = {
         title,
         author,
         content,
-        imageUrl: uploadedImageUrl,
     };
 
     const validationResult = vlogPostFormSchema.safeParse(rawFormData);
@@ -156,8 +116,6 @@ export default function AdminUploadPage() {
       setTitle("");
       setAuthor("Admin");
       setContent("");
-      setImageFile(null);
-      setImagePreview(null);
       toast({
         title: "Vlog Post Uploaded!",
         description: `"${dataToSave.title}" has been successfully added.`,
@@ -175,7 +133,7 @@ export default function AdminUploadPage() {
     }
   };
 
-  const getErrorForField = (fieldName: keyof VlogPostFormData | 'imageFile') => {
+  const getErrorForField = (fieldName: keyof VlogPostFormData) => {
     return formErrors.find(err => err.path.includes(fieldName))?.message;
   }
 
@@ -234,27 +192,6 @@ export default function AdminUploadPage() {
               />
               {getErrorForField('content') && <p className="text-sm text-destructive mt-1">{getErrorForField('content')}</p>}
             </div>
-
-             <div>
-              <Label htmlFor="imageFile">Featured Image (Optional)</Label>
-              <Input
-                id="imageFile"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="text-base md:text-sm mt-1"
-              />
-              {getErrorForField('imageFile') && <p className="text-sm text-destructive mt-1">{getErrorForField('imageFile')}</p>}
-              {imagePreview && (
-                <div className="mt-4 relative w-full h-64 border rounded-md overflow-hidden">
-                  <Image src={imagePreview} alt="Image preview" layout="fill" objectFit="cover" />
-                </div>
-              )}
-               <p className="text-xs text-muted-foreground mt-1">
-                 Upload a featured image for the vlog post (this is separate from images in the content editor).
-              </p>
-            </div>
-
 
             <Button type="submit" disabled={isUploading || !isAdmin} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               {isUploading ? (

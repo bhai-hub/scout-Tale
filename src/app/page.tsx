@@ -5,10 +5,9 @@ import type { NextPage } from "next";
 import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, Compass, Calendar, User, Loader2 } from "lucide-react";
+import { Search, Compass, Calendar, User, Loader2, ImageOff } from "lucide-react"; // Added ImageOff
 import { getVlogPosts } from "@/actions/vlog"; // Import server action
 import type { VlogPostClient } from "@/schemas/vlog"; // Import type
 
@@ -46,10 +45,13 @@ const Home: NextPage = () => {
 
   // Function to generate a preview from HTML content
   const generatePreview = (htmlContent: string, maxLength: number = 100) => {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlContent;
-    const text = tempDiv.textContent || tempDiv.innerText || "";
-    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+    if (typeof document !== 'undefined') {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = htmlContent;
+        const text = tempDiv.textContent || tempDiv.innerText || "";
+        return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+    }
+    return ""; // Return empty string or some placeholder if document is not available
   };
 
 
@@ -78,15 +80,9 @@ const Home: NextPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVlogs.map((vlog) => (
             <Card key={vlog._id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="p-0 relative">
-                 <Image
-                    src={vlog.imageUrl || `https://picsum.photos/seed/${vlog._id}/400/250`} // Fallback placeholder
-                    alt={vlog.title}
-                    width={400}
-                    height={250}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint="scouting nature adventure" // Generic hint
-                  />
+              <CardHeader className="p-0 relative aspect-video bg-muted flex items-center justify-center">
+                 {/* Removed featured image, showing a placeholder icon instead */}
+                  <ImageOff className="h-16 w-16 text-muted-foreground" />
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-grow">
                 <CardTitle className="text-lg font-semibold mb-2">{vlog.title}</CardTitle>

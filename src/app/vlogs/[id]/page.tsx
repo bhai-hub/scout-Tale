@@ -1,24 +1,23 @@
 
 "use client";
 
-import { useParams, useRouter } // Added useRouter
+import { useParams, useRouter } 
 from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Removed CardDescription
-import { Calendar, User, ArrowLeft, Loader2 } from 'lucide-react'; // Added Loader2
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; 
+import { Calendar, User, ArrowLeft, Loader2 } from 'lucide-react'; 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getVlogPostBySlug } from '@/actions/vlog'; // Import server action
-import type { VlogPostClient } from '@/schemas/vlog'; // Import type
+import { getVlogPostBySlug } from '@/actions/vlog'; 
+import type { VlogPostClient } from '@/schemas/vlog'; 
 
 export default function VlogPostPage() {
   const params = useParams();
-  const slug = params.id as string; // Assuming 'id' from the route is the slug
+  const slug = params.id as string; 
   const [vlog, setVlog] = useState<VlogPostClient | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter(); // For navigation
+  const router = useRouter(); 
 
   useEffect(() => {
     if (slug) {
@@ -29,13 +28,11 @@ export default function VlogPostPage() {
           if (foundVlog) {
             setVlog(foundVlog);
           } else {
-            // Handle not found, e.g., redirect or show a message
             console.warn(`Vlog post with slug "${slug}" not found.`);
-            // router.push('/404'); // Or a custom not-found page for vlogs
+            // router.push('/404'); // Consider a custom not-found page for vlogs
           }
         } catch (error) {
           console.error("Failed to fetch vlog post:", error);
-          // Handle error, e.g., show an error message
         } finally {
           setLoading(false);
         }
@@ -48,7 +45,7 @@ export default function VlogPostPage() {
     return (
        <div className="max-w-3xl mx-auto space-y-6 py-8">
           <Skeleton className="h-9 w-32 mb-6" /> {/* Back button */}
-          <Skeleton className="h-96 w-full rounded-lg" /> {/* Image */}
+          {/* Removed Skeleton for Image as featured image is removed */}
           <Skeleton className="h-8 w-3/4 mt-4" /> {/* Title */}
           <div className="flex space-x-4 mt-2">
              <Skeleton className="h-4 w-24" /> {/* Author */}
@@ -88,19 +85,7 @@ export default function VlogPostPage() {
          </Button>
        </Link>
       <Card className="overflow-hidden shadow-lg">
-         {vlog.imageUrl && (
-            <CardHeader className="p-0">
-                <Image
-                  src={vlog.imageUrl}
-                  alt={vlog.title}
-                  width={800}
-                  height={400}
-                  className="w-full h-auto object-cover max-h-96"
-                  data-ai-hint="article hero image" // Generic hint
-                  priority
-                />
-            </CardHeader>
-         )}
+         {/* Removed CardHeader and Image component for featured image */}
         <CardContent className="p-6 space-y-4">
           <CardTitle className="text-2xl md:text-3xl font-bold">{vlog.title}</CardTitle>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -114,7 +99,7 @@ export default function VlogPostPage() {
               </div>
           </div>
            <div
-             className="prose dark:prose-invert max-w-none tiptap" // Added 'tiptap' class for global styling
+             className="prose dark:prose-invert max-w-none tiptap" 
              dangerouslySetInnerHTML={{ __html: vlog.content }}
            />
         </CardContent>
