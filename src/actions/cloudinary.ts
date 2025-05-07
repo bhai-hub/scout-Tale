@@ -41,8 +41,6 @@ export async function uploadImageToCloudinary(formData: FormData): Promise<Cloud
   }
 
   // Perform a runtime check to ensure Cloudinary is configured before attempting an upload.
-  // This is crucial because the initial config check happens at build/startup,
-  // but env vars might change or be missing in some environments.
   if (!cloudinary.config().cloud_name || !cloudinary.config().api_key || !cloudinary.config().api_secret) {
     console.error('Cloudinary is not configured. Make sure all environment variables are set.');
     return { 
@@ -57,17 +55,16 @@ export async function uploadImageToCloudinary(formData: FormData): Promise<Cloud
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cloudinary
-    const result: UploadApiResponse | UploadApiErrorResponse = await new Promise((resolve, reject) => {
+    const result: UploadApiResponse | UploadApiErrorResponse | undefined = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'image' }, // You can add more options like folder, tags, etc.
+        { resource_type: 'image' }, 
         (error, result) => {
           if (error) {
+            // Reject with the error so it's caught by the outer try-catch
             reject(error);
-          } else if (result) {
-            resolve(result);
           } else {
-            // This case should ideally not happen if Cloudinary's SDK behaves as expected.
-            reject(new Error('Cloudinary upload failed with no result and no error.'));
+            // Resolve with the result (could be success or an error structure from Cloudinary)
+            resolve(result);
           }
         }
       );
@@ -75,20 +72,57 @@ export async function uploadImageToCloudinary(formData: FormData): Promise<Cloud
     });
     
     // Check if the result is a successful upload response
-    if ('secure_url' in result) {
+    if (result && 'secure_url' in result && typeof result.secure_url === 'string') {
       return { success: true, imageUrl: result.secure_url };
     } else {
       // Handle potential error response structure from Cloudinary
-      // This casting is to help TypeScript understand it's an error response
-      const errorResponse = result as UploadApiErrorResponse;
-      const errorMessage = errorResponse.message || (errorResponse.error && errorResponse.error.message) || 'Unknown Cloudinary upload error';
-      console.error('Cloudinary Upload Error Response:', errorResponse);
-      return { success: false, error: `Cloudinary upload failed: ${errorMessage}` };
+      const errorResponse = result as UploadApiErrorResponse | undefined;
+      let detailedErrorMessage = 'Unknown Cloudinary upload error';
+
+      if (errorResponse?.error) {
+        if (typeof errorResponse.error === 'string') {
+            detailedErrorMessage = errorResponse.error;
+        } else if (errorResponse.error.message && typeof errorResponse.error.message === 'string') {
+            detailedErrorMessage = errorResponse.error.message;
+        } else if (typeof errorResponse.error.message === 'object') { // Sometimes message can be an object
+            detailedErrorMessage = JSON.stringify(errorResponse.error.message);
+        } else {
+            detailedErrorMessage = `Cloudinary error object: ${JSON.stringify(errorResponse.error)}`;
+        }
+      } else if (errorResponse?.message && typeof errorResponse.message === 'string') {
+         detailedErrorMessage = errorResponse.message;
+      } else if (result) { 
+        detailedErrorMessage = `Unexpected response structure from Cloudinary.`;
+      }
+
+      // Log the full error response for better debugging on the server
+      try {
+        console.error('Cloudinary Upload Error Response:', JSON.stringify(errorResponse || result, null, 2));
+      } catch (logError) {
+        console.error('Cloudinary Upload Error Response (raw):', errorResponse || result);
+        console.error('Error stringifying Cloudinary error response:', logError);
+      }
+      
+      return { success: false, error: `Cloudinary upload failed: ${detailedErrorMessage}` };
     }
 
-  } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during image upload.';
+  } catch (error: unknown) { // Explicitly type error as unknown
+    console.error('Original error during Cloudinary upload:', error); // Log the original error object
+    let errorMessage = 'An unknown error occurred during image upload.';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+      errorMessage = (error as { message: string }).message;
+    } else {
+      try {
+        errorMessage = `Non-Error exception: ${JSON.stringify(error)}`;
+      } catch (stringifyError) {
+        errorMessage = 'An unserializable error occurred during image upload.';
+      }
+    }
     return { success: false, error: errorMessage };
   }
 }
+
