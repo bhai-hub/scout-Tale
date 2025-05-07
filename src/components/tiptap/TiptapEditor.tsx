@@ -14,23 +14,24 @@ import Highlight from '@tiptap/extension-highlight';
 import {
   Bold, Italic, UnderlineIcon, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Link as LinkIcon, Image as ImageIcon, Pilcrow, Undo, Redo,
-  Palette, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus, Upload
+  Palette, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Minus, Upload, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import React, { useCallback, useState, useRef } from 'react'; // Added useRef
+import React, { useCallback, useState, useRef } from 'react';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (newContent: string) => void;
   placeholder?: string;
-  onImageUpload?: (file: File) => Promise<string | undefined>; // Optional callback for image uploads
+  onImageUpload?: (file: File) => Promise<string | undefined>;
 }
 
 const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapEditorProps) => {
+  const [isEditorImageUploading, setIsEditorImageUploading] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -44,9 +45,9 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
         autolink: true,
         linkOnPaste: true,
       }),
-      ImageExtension.configure({ // Use the renamed import
+      ImageExtension.configure({
         inline: false,
-        allowBase64: !!onImageUpload, // Allow base64 only if onImageUpload is not provided for client-side preview
+        allowBase64: !!onImageUpload,
       }),
       Placeholder.configure({ placeholder: placeholder || 'Start writing...' }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -63,31 +64,29 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
         class:
           'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-[250px] p-4 border border-input rounded-md bg-background',
       },
-      // Handle paste event for images
       handlePaste: (view, event, slice) => {
-        if (!onImageUpload) return false; // If no upload handler, use default paste behavior
+        if (!onImageUpload) return false;
 
         const items = Array.from(event.clipboardData?.items || []);
         for (const item of items) {
           if (item.type.indexOf('image') === 0) {
             const file = item.getAsFile();
             if (file) {
-              handleFileUpload(file); // Upload and insert image
-              return true; // Prevent default paste behavior
+              handleFileUpload(file);
+              return true;
             }
           }
         }
-        return false; // Use default paste behavior
+        return false;
       },
-       // Handle drop event for images
       handleDrop: (view, event, slice, moved) => {
-        if (!onImageUpload || moved) return false; // If no upload handler or internal move, use default
+        if (!onImageUpload || moved) return false;
 
         const files = Array.from(event.dataTransfer?.files || []);
         for (const file of files) {
           if (file.type.startsWith('image/')) {
-            event.preventDefault(); // Prevent default drop
-            handleFileUpload(file); // Upload and insert image
+            event.preventDefault();
+            handleFileUpload(file);
             return true;
           }
         }
@@ -96,15 +95,23 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
     },
   });
 
-  const [imageUrlInput, setImageUrlInput] = useState(''); // For URL input
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (file: File) => {
     if (onImageUpload && editor) {
-      const uploadedUrl = await onImageUpload(file);
-      if (uploadedUrl) {
-        editor.chain().focus().setImage({ src: uploadedUrl }).run();
+      setIsEditorImageUploading(true);
+      try {
+        const uploadedUrl = await onImageUpload(file);
+        if (uploadedUrl) {
+          editor.chain().focus().setImage({ src: uploadedUrl }).run();
+        }
+      } catch (error) {
+        console.error("Error uploading image to editor:", error);
+        // Toast notification for error is handled in AdminUploadPage
+      } finally {
+        setIsEditorImageUploading(false);
       }
     }
   };
@@ -116,31 +123,23 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
     }
   };
 
-
   const addImageFromUrl = useCallback(async () => {
     if (imageUrlInput && editor) {
-      // If onImageUpload is provided, we might want to "proxy" the URL upload
-      // For simplicity, directly inserting URL. For advanced scenarios, you might download and re-upload.
       editor.chain().focus().setImage({ src: imageUrlInput }).run();
       setImageUrlInput('');
     }
   }, [editor, imageUrlInput]);
 
-
   const setLink = useCallback(() => {
     if (!editor) return;
-    // const previousUrl = editor.getAttributes('link').href; // Not used, but good for reference
-    
     if (!linkUrl) {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       setLinkUrl('');
       return;
     }
-
     editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl, target: '_blank' }).run();
     setLinkUrl('');
   }, [editor, linkUrl]);
-
 
   if (!editor) {
     return null;
@@ -149,7 +148,6 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-1 p-2 border border-input rounded-md bg-card">
-        {/* ... (other toolbar buttons remain the same) ... */}
         <Toggle
           size="sm"
           pressed={editor.isActive('bold')}
@@ -267,18 +265,30 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
           </PopoverContent>
         </Popover>
 
-        {/* Image Popover */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" aria-label="Add image">
-              <ImageIcon className="h-4 w-4" />
+            <Button variant="ghost" size="sm" aria-label="Add image" disabled={isEditorImageUploading}>
+              {isEditorImageUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-2 space-y-2">
             {onImageUpload && (
               <>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} className="w-full h-8">
-                  <Upload className="mr-2 h-4 w-4" /> Upload from Computer
+                <Button 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="w-full h-8"
+                  disabled={isEditorImageUploading}
+                >
+                  {isEditorImageUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" /> Upload from Computer
+                    </>
+                  )}
                 </Button>
                 <Input
                   type="file"
@@ -286,6 +296,7 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
                   onChange={onFileChange}
                   className="hidden"
                   accept="image/*"
+                  disabled={isEditorImageUploading}
                 />
                 <Separator />
               </>
@@ -297,8 +308,9 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
                 value={imageUrlInput}
                 onChange={(e) => setImageUrlInput(e.target.value)}
                 className="h-8"
+                disabled={isEditorImageUploading}
               />
-              <Button size="sm" onClick={addImageFromUrl} className="h-8">Add</Button>
+              <Button size="sm" onClick={addImageFromUrl} className="h-8" disabled={isEditorImageUploading}>Add</Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               You can also paste images directly into the editor or drag & drop.
@@ -406,7 +418,6 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
         >
           <Redo className="h-4 w-4" />
         </Button>
-        {/* End of existing toolbar buttons */}
       </div>
       <EditorContent editor={editor} />
       {editor && (
@@ -439,7 +450,7 @@ const TiptapEditor = ({ content, onChange, placeholder, onImageUpload }: TiptapE
             </Button>
              <Button
               size="sm" variant="ghost"
-              onClick={setLink} // Simplified, assumes linkUrl state is managed elsewhere or by a popover
+              onClick={setLink}
               className={editor.isActive('link') ? 'is-active bg-accent text-accent-foreground' : ''}
             >
               Link

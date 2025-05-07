@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Loader2 } from "lucide-react"; // Removed ImageIcon as it's handled by Tiptap
+import { UploadCloud, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import TiptapEditor from "@/components/tiptap/TiptapEditor";
 import { createVlogPost } from "@/actions/vlog";
@@ -32,7 +32,7 @@ export default function AdminUploadPage() {
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // For overall form submission
   const { toast } = useToast();
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
@@ -69,8 +69,7 @@ export default function AdminUploadPage() {
     const formData = new FormData();
     formData.append('file', file);
     
-    // Consider adding a specific loading state for editor uploads if needed
-    // toast({ title: "Uploading image to editor..." }); 
+    // Loading state is handled within TiptapEditor component now
     
     const uploadResult = await uploadImageToCloudinary(formData);
     
@@ -103,7 +102,6 @@ export default function AdminUploadPage() {
 
     let uploadedImageUrl: string | undefined = undefined;
 
-    // Handle featured image upload (if selected)
     if (imageFile) {
       const imageFormData = new FormData();
       imageFormData.append('file', imageFile);
@@ -232,7 +230,7 @@ export default function AdminUploadPage() {
                 content={content}
                 onChange={setContent}
                 placeholder="Write your vlog content here..."
-                onImageUpload={handleTiptapImageUpload} // Pass the handler
+                onImageUpload={handleTiptapImageUpload}
               />
               {getErrorForField('content') && <p className="text-sm text-destructive mt-1">{getErrorForField('content')}</p>}
             </div>
